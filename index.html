@@ -47,6 +47,46 @@ const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
   function show(page){document.querySelectorAll('aside button').forEach(b=>b.classList.remove('active'));let n=document.getElementById('nav-'+page);if(n)n.classList.add('active');let m=document.getElementById('main');if(page==='sichtungen'){m.style.display='block';return}m.innerHTML=page==='forum'?'<section class="formbox"><div class="kicker">AUSTAUSCH & DISKUSSION</div><h2>Das Forum</h2><p>Hier entsteht Platz für Fragen, Streckenthemen, Fahrzeugdiskussionen und alles, was Eisenbahn-Freunde bewegt.</p><div class="notice">Das Forum wird im nächsten Entwicklungsschritt mit Mitgliederkonten und Datenbank aktiviert.</div></section>':'<section class="formbox"><div class="kicker">FOTOS AUS DER COMMUNITY</div><h2>Bildergalerie</h2><p>Mitglieder können hier künftig ihre Eisenbahnfotos hochladen, Alben anlegen und besondere Aufnahmen teilen.</p><div class="notice">Die Bildergalerie wird im nächsten Entwicklungsschritt mit sicherem Foto-Upload aktiviert.</div></section>'}
 function addSighting(e){e.preventDefault();let station=document.getElementById('station').value,train=document.getElementById('train').value,num=document.getElementById('number').value,dir=document.getElementById('direction').value,note=document.getElementById('note').value;let card=document.createElement('article');card.className='card';card.innerHTML='<div class="time">'+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+'<small>JETZT</small></div><div><span class="tag"></span><h3></h3><b></b><p class="dir"></p><p class="note"></p></div>';card.querySelector('.tag').textContent=train;card.querySelector('h3').textContent=station;card.querySelector('b').textContent=num;card.querySelector('.dir').textContent=dir?'→ '+dir:'';card.querySelector('.note').textContent=note;document.getElementById('cards').prepend(card);e.target.reset();alert('Die Sichtung wurde in dieser Vorschau angezeigt. Für dauerhaftes Speichern folgt die Datenbank-Anbindung.');}
 function filterCards(){let q=document.getElementById('search').value.toLowerCase();document.querySelectorAll('#cards .card').forEach(c=>c.style.display=c.innerText.toLowerCase().includes(q)?'grid':'none')}
+async function anmelden() {
+  const email = document.getElementById('auth-email').value;
+  const passwort = document.getElementById('auth-password').value;
+
+  const { error } = await supabaseClient.auth.signInWithPassword({
+    email: email,
+    password: passwort
+  });
+
+  if (error) {
+    alert('Anmeldung fehlgeschlagen: ' + error.message);
+  } else {
+    alert('Du bist erfolgreich angemeldet!');
+  }
+}
+
+async function registrieren() {
+  const email = document.getElementById('auth-email').value;
+  const passwort = document.getElementById('auth-password').value;
+
+  const { error } = await supabaseClient.auth.signUp({
+    email: email,
+    password: passwort
+  });
+
+  if (error) {
+    alert('Registrierung fehlgeschlagen: ' + error.message);
+  } else {
+    alert('Registrierung erfolgreich! Bitte prüfe deine E-Mails.');
+  }
+}
 </script>
+<section id="anmelden" class="formbox">
+  <h2>Mitgliederbereich</h2>
+  <label for="auth-email">E-Mail-Adresse</label>
+  <input id="auth-email" type="email" placeholder="Deine E-Mail-Adresse">
+  <label for="auth-password">Passwort</label>
+  <input id="auth-password" type="password" placeholder="Dein Passwort">
+  <button onclick="anmelden()">Anmelden</button>
+  <button onclick="registrieren()">Registrieren</button>
+</section>
 </body></html>
 <!-- Vercel-Neustart -->
