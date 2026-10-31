@@ -23,6 +23,7 @@ main{min-width:0}.heading{display:flex;justify-content:space-between;align-items
 .card{padding:17px;margin-bottom:12px;display:grid;grid-template-columns:75px 1fr;gap:14px}.time{font-weight:800;color:#536873}.time small{display:block;color:#9aa6ab;font-size:10px}.tag{display:inline-block;background:#edf3f5;color:#38677b;border-radius:5px;padding:4px 8px;font-size:11px;font-weight:800}.card h3{margin:9px 0 3px;color:var(--navy)}.card p{margin:6px 0;color:#697981;font-size:13px}.note{font-size:12px!important}.sighting-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.sighting-actions button{padding:8px 11px;font-size:12px}.edit-sighting{display:grid;gap:8px;margin-top:12px;padding:12px;background:#f4f6f7;border-radius:9px}.edit-sighting input,.edit-sighting textarea,.edit-sighting select{width:100%;padding:9px;border:1px solid #dce4e7;border-radius:7px;font:inherit}.edit-sighting label{font-size:11px;font-weight:700}.danger{background:#fff0ed;color:#a33d27;border:1px solid #edc8be}
 .formbox{background:white;border:1px solid #e5eaec;border-radius:13px;padding:20px;margin:15px 0}.formbox label{display:block;font-size:12px;font-weight:700;margin:12px 0}.formbox input,.formbox select,.formbox textarea{display:block;width:100%;margin-top:6px;padding:11px;border:1px solid #dce4e7;border-radius:8px;font:inherit}
 .notice{background:#fff8f3;border:1px solid #f1d8ca;color:#87503b;padding:12px;border-radius:9px;font-size:12px;line-height:1.5;margin-top:12px}
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-top:18px}.photo-card{overflow:hidden;border:1px solid #e5eaec;border-radius:12px;background:white}.photo-card img{display:block;width:100%;height:180px;object-fit:cover;background:#edf3f5}.photo-card div{padding:11px}.photo-card h3{margin:0 0 5px;font-size:14px}.photo-card p{margin:4px 0;color:var(--muted);font-size:12px}.gallery-empty{padding:18px;border:1px dashed #cbd6da;border-radius:10px;color:var(--muted);font-size:13px}.gallery-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:700px){.gallery-form-grid{grid-template-columns:1fr}}
 footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 @media(max-width:700px){header{align-items:flex-start;flex-direction:column}.hero{grid-template-columns:1fr;padding-top:38px}.train-art{padding:18px;font-size:45px}.wrap{grid-template-columns:1fr}.card{grid-template-columns:60px 1fr}}
 </style>
@@ -49,7 +50,7 @@ async function abmelden(){const {error}=await supabaseClient.auth.signOut();if(e
 supabaseClient.auth.onAuthStateChange(()=>{updateAuthStatus();});
 updateAuthStatus();
 
-  function show(page){document.querySelectorAll('aside button').forEach(b=>b.classList.remove('active'));let n=document.getElementById('nav-'+page);if(n)n.classList.add('active');let m=document.getElementById('main');if(page==='sichtungen'){m.style.display='block';return}m.innerHTML=page==='forum'?'<section class="formbox"><div class="kicker">AUSTAUSCH & DISKUSSION</div><h2>Das Forum</h2><p>Hier entsteht Platz für Fragen, Streckenthemen, Fahrzeugdiskussionen und alles, was Eisenbahn-Freunde bewegt.</p><div class="notice">Das Forum wird im nächsten Entwicklungsschritt mit Mitgliederkonten und Datenbank aktiviert.</div></section>':'<section class="formbox"><div class="kicker">FOTOS AUS DER COMMUNITY</div><h2>Bildergalerie</h2><p>Mitglieder können hier künftig ihre Eisenbahnfotos hochladen, Alben anlegen und besondere Aufnahmen teilen.</p><div class="notice">Die Bildergalerie wird im nächsten Entwicklungsschritt mit sicherem Foto-Upload aktiviert.</div></section>'}
+  function show(page){document.querySelectorAll('aside button').forEach(b=>b.classList.remove('active'));let n=document.getElementById('nav-'+page);if(n)n.classList.add('active');let m=document.getElementById('main');m.style.display='block';if(page==='sichtungen'){m.innerHTML=window.sightingsMarkup||m.innerHTML;loadSightings();return}if(page==='galerie'){renderGallery();return}m.innerHTML='<section class="formbox"><div class="kicker">AUSTAUSCH & DISKUSSION</div><h2>Das Forum</h2><p>Hier entsteht Platz für Fragen, Streckenthemen, Fahrzeugdiskussionen und alles, was Eisenbahn-Freunde bewegt.</p><div class="notice">Das Forum wird im nächsten Entwicklungsschritt mit Mitgliederkonten und Datenbank aktiviert.</div></section>'}
 async function addSighting(e){e.preventDefault();const {data:{user},error:userError}=await supabaseClient.auth.getUser();if(userError||!user){alert('Bitte melde dich zuerst im Mitgliederbereich an, um eine Sichtung zu speichern.');document.getElementById('anmelden').scrollIntoView({behavior:'smooth'});return;}const station=document.getElementById('station').value.trim(),train=document.getElementById('train').value,num=document.getElementById('number').value.trim(),dir=document.getElementById('direction').value.trim(),note=document.getElementById('note').value.trim();const {error}=await supabaseClient.from('sightings').insert({user_id:user.id,station:station,train_type:train,train_number:num||null,direction:dir||null,note:note||null});if(error){alert('Die Sichtung konnte nicht gespeichert werden: '+error.message);return;}e.target.reset();await loadSightings();alert('Deine Sichtung wurde dauerhaft gespeichert. Vielen Dank!');}
 async function loadSightings(){const cards=document.getElementById('cards');if(!cards)return;const {data,error}=await supabaseClient.from('sightings').select('id,user_id,station,train_type,train_number,direction,note,created_at').order('created_at',{ascending:false}).limit(100);if(error){console.error('Sichtungen konnten nicht geladen werden:',error.message);return;}cards.innerHTML='';for(const s of (data||[])){const card=document.createElement('article');card.className='card';const time=document.createElement('div');time.className='time';const date=new Date(s.created_at);time.textContent=date.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});const small=document.createElement('small');small.textContent=date.toLocaleDateString('de-DE');time.appendChild(small);const body=document.createElement('div');const tag=document.createElement('span');tag.className='tag';tag.textContent=s.train_type||'Zug';const h=document.createElement('h3');h.textContent=s.station;const number=document.createElement('b');number.textContent=s.train_number||'';const direction=document.createElement('p');direction.textContent=s.direction?'→ '+s.direction:'';const note=document.createElement('p');note.className='note';note.textContent=s.note||'';body.append(tag,h,number,direction,note);
 const {data:{user}}=await supabaseClient.auth.getUser();
@@ -99,6 +100,54 @@ await loadSightings();alert('Deine Sichtung wurde gelöscht.');
 }
 
 function filterCards(){let q=document.getElementById('search').value.toLowerCase();document.querySelectorAll('#cards .card').forEach(c=>c.style.display=c.innerText.toLowerCase().includes(q)?'grid':'none')}
+async function renderGallery(){
+const m=document.getElementById('main');
+m.innerHTML=`<section class="formbox"><div class="kicker">FOTOS AUS DER COMMUNITY</div><h2>Bildergalerie</h2><p>Lege eigene Alben an und teile deine Eisenbahnfotos mit der Community.</p><div id="gallery-status" class="notice">Die Galerie wird geladen …</div></section>
+<section class="formbox"><h3>📁 Neues Fotoalbum</h3><form id="album-form"><label>Albumtitel *<input id="album-title" required maxlength="100" placeholder="z. B. Sonderzüge 2026"></label><label>Beschreibung (optional)<textarea id="album-description" rows="2" maxlength="500" placeholder="Worum geht es in diesem Album?"></textarea></label><button class="primary" type="submit">Album anlegen</button></form></section>
+<section class="formbox"><h3>📷 Fotos hochladen</h3><form id="photo-form"><div class="gallery-form-grid"><label>Album *<select id="photo-album" required><option value="">Bitte zuerst ein Album auswählen</option></select></label><label>Aufnahmeort (optional)<input id="photo-location" maxlength="160" placeholder="z. B. Bahnhof Gnarrenburg"></label></div><label>Bildunterschrift (optional)<input id="photo-caption" maxlength="250" placeholder="Was ist auf dem Foto zu sehen?"></label><label>Aufnahmedatum (optional)<input id="photo-date" type="datetime-local"></label><label>Bilddateien *<input id="photo-files" type="file" accept="image/jpeg,image/png,image/webp" multiple required></label><p class="note">Erlaubt sind JPG, PNG und WebP. Bitte lade nur Fotos hoch, die du teilen möchtest. Standort- und EXIF-Daten werden nicht automatisch veröffentlicht.</p><button class="primary" type="submit">Fotos hochladen</button></form></section>
+<section class="formbox"><h3>Alle Community-Fotos</h3><div id="gallery-photos" class="gallery-grid"><div class="gallery-empty">Fotos werden geladen …</div></div></section>`;
+const albumForm=document.getElementById('album-form');
+const photoForm=document.getElementById('photo-form');
+albumForm.addEventListener('submit',createPhotoAlbum);
+photoForm.addEventListener('submit',uploadGalleryPhotos);
+await loadGallery();
+}
+async function loadGallery(){
+const status=document.getElementById('gallery-status');if(!status)return;
+const albumSelect=document.getElementById('photo-album');
+const {data:albums,error:albumError}=await supabaseClient.from('photo_albums').select('id,user_id,title,description,created_at').order('created_at',{ascending:false});
+if(albumError){status.textContent='Alben konnten nicht geladen werden: '+albumError.message;return;}
+albumSelect.innerHTML='<option value="">Bitte Album auswählen</option>';
+for(const a of (albums||[])){const option=document.createElement('option');option.value=a.id;option.textContent=a.title;albumSelect.appendChild(option);}
+const {data:photos,error:photoError}=await supabaseClient.from('gallery_photos').select('id,album_id,user_id,image_url,caption,location_name,taken_at,created_at').order('created_at',{ascending:false}).limit(100);
+if(photoError){status.textContent='Fotos konnten nicht geladen werden: '+photoError.message;return;}
+status.textContent=(albums||[]).length+' Fotoalbum/Fotoalben · '+(photos||[]).length+' Foto(s). Zum Anlegen und Hochladen bitte anmelden.';
+const grid=document.getElementById('gallery-photos');grid.innerHTML='';
+if(!photos||photos.length===0){grid.innerHTML='<div class="gallery-empty">Noch keine Fotos vorhanden. Sei der Erste und teile deine Eisenbahnfotos!</div>';return;}
+const albumNames=new Map((albums||[]).map(a=>[a.id,a.title]));
+for(const p of photos){const card=document.createElement('article');card.className='photo-card';const img=document.createElement('img');img.src=p.image_url;img.alt=p.caption||'Eisenbahnfoto aus der Community';img.loading='lazy';const info=document.createElement('div');const heading=document.createElement('h3');heading.textContent=p.caption||'Eisenbahnfoto';const album=document.createElement('p');album.textContent='📁 '+(albumNames.get(p.album_id)||'Fotoalbum');info.append(heading,album);if(p.location_name){const place=document.createElement('p');place.textContent='📍 '+p.location_name;info.appendChild(place);}if(p.taken_at){const date=document.createElement('p');date.textContent='📅 '+new Date(p.taken_at).toLocaleDateString('de-DE');info.appendChild(date);}card.append(img,info);grid.appendChild(card);}
+}
+async function createPhotoAlbum(e){
+e.preventDefault();const {data:{user}}=await supabaseClient.auth.getUser();if(!user){alert('Bitte melde dich zuerst im Mitgliederbereich an.');document.getElementById('anmelden').scrollIntoView({behavior:'smooth'});return;}
+const title=document.getElementById('album-title').value.trim();const description=document.getElementById('album-description').value.trim();
+const {error}=await supabaseClient.from('photo_albums').insert({user_id:user.id,title,description:description||null});
+if(error){alert('Album konnte nicht angelegt werden: '+error.message);return;}e.target.reset();await loadGallery();alert('Dein Fotoalbum wurde angelegt.');
+}
+async function uploadGalleryPhotos(e){
+e.preventDefault();const {data:{user}}=await supabaseClient.auth.getUser();if(!user){alert('Bitte melde dich zuerst im Mitgliederbereich an.');document.getElementById('anmelden').scrollIntoView({behavior:'smooth'});return;}
+const albumId=document.getElementById('photo-album').value;const files=Array.from(document.getElementById('photo-files').files||[]);if(!albumId||!files.length){alert('Bitte wähle ein Album und mindestens ein Foto aus.');return;}
+const caption=document.getElementById('photo-caption').value.trim();const locationName=document.getElementById('photo-location').value.trim();const dateValue=document.getElementById('photo-date').value;const takenAt=dateValue?new Date(dateValue).toISOString():null;
+for(const file of files){if(!['image/jpeg','image/png','image/webp'].includes(file.type)){alert('Bitte nur JPG-, PNG- oder WebP-Dateien verwenden.');return;}if(file.size>25*1024*1024){alert('Das Foto '+file.name+' ist größer als 25 MB. Bitte verkleinere es zuerst.');return;}}
+const submit=e.target.querySelector('button[type="submit"]');submit.disabled=true;submit.textContent='Fotos werden hochgeladen …';
+try{for(const file of files){const safeName=file.name.normalize('NFKD').replace(/[^a-zA-Z0-9._-]/g,'-');const path=user.id+'/'+albumId+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'-'+safeName;
+const {error:uploadError}=await supabaseClient.storage.from('community-photos').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type});if(uploadError)throw uploadError;
+const {data:{publicUrl}}=supabaseClient.storage.from('community-photos').getPublicUrl(path);
+const {error:insertError}=await supabaseClient.from('gallery_photos').insert({album_id:albumId,user_id:user.id,image_url:publicUrl,caption:caption||null,location_name:locationName||null,taken_at:takenAt});if(insertError)throw insertError;}
+e.target.reset();await loadGallery();alert('Deine Fotos wurden erfolgreich hochgeladen.');}
+catch(error){alert('Beim Hochladen ist ein Fehler aufgetreten: '+error.message);}
+finally{submit.disabled=false;submit.textContent='Fotos hochladen';}
+}
+
 loadSightings();
 async function anmelden() {
   const email = document.getElementById('auth-email').value;
