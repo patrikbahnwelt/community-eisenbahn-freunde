@@ -96,7 +96,7 @@ function escapeRichText(value){return String(value||'').replace(/[&<>"']/g,ch=>(
 function safeForumHtml(input){
 const doc=new DOMParser().parseFromString(String(input||''),'text/html');
 const allowed=new Set(['B','STRONG','I','EM','U','BR','P','DIV','SPAN','FONT']);
-const safeFonts=['Barlow','Barlow Condensed','Arial','Georgia','Verdana'];
+const safeFonts=['Barlow','Barlow Condensed','Arial','Georgia','Verdana','Times New Roman','Monotype Corsiva','Trebuchet MS','Courier New','Comic Sans MS','Palatino Linotype','Impact'];
 function clean(node){let out='';for(const child of node.childNodes){if(child.nodeType===Node.TEXT_NODE){out+=escapeRichText(child.nodeValue);}else if(child.nodeType===Node.ELEMENT_NODE){const tag=child.tagName;if(allowed.has(tag)){let attrs='';if(tag==='SPAN'||tag==='FONT'){const color=(child.style.color||'').toLowerCase();const font=(tag==='FONT'?child.getAttribute('face'):child.style.fontFamily||'').replace(/[\"']/g,'').trim();let styles=[];if(/^#[0-9a-f]{6}$/.test(color)||['red','blue','green','orange','purple','black','gray'].includes(color))styles.push('color:'+color);const safeFont=safeFonts.find(f=>f.toLowerCase()===font.toLowerCase());if(safeFont)styles.push('font-family:'+safeFont);if(styles.length)attrs=' style=\"'+styles.join(';')+'\"';}const outTag=tag==='FONT'?'span':tag.toLowerCase();out+='<'+outTag+attrs+'>'+clean(child)+'</'+outTag+'>'; }else{out+=clean(child);}}}return out;}
 return clean(doc.body);
 }
@@ -106,11 +106,16 @@ const toolbar=document.createElement('div');toolbar.className='rich-toolbar';
 const area=document.createElement('div');area.className='rich-area';area.contentEditable='true';area.dataset.placeholder=placeholder;area.innerHTML=safeForumHtml(initial);
 function command(label,cmd,value){const b=document.createElement('button');b.type='button';b.textContent=label;b.title=label;b.addEventListener('mousedown',e=>e.preventDefault());b.addEventListener('click',()=>{area.focus();document.execCommand(cmd,false,value||null);});toolbar.appendChild(b);}
 command('F','bold');command('K','italic');command('U','underline');
-const color=document.createElement('select');color.title='Textfarbe';color.setAttribute('aria-label','Textfarbe');
-for(const [label,value] of [['Textfarbe',''],['Schwarz','#172b3a'],['Rot','#c0392b'],['Blau','#1769aa'],['Grün','#27834a'],['Orange','#d66a35'],['Lila','#7b4ab0']]){const o=document.createElement('option');o.textContent=label;o.value=value;color.appendChild(o);}
-color.addEventListener('change',()=>{if(color.value){area.focus();document.execCommand('foreColor',false,color.value);color.value='';}});toolbar.appendChild(color);
+let savedRange=null;
+function rememberSelection(){const sel=window.getSelection();if(sel&&sel.rangeCount&&area.contains(sel.anchorNode))savedRange=sel.getRangeAt(0).cloneRange();}
+function applyColor(value){if(!/^#[0-9a-f]{6}$/i.test(value))return;area.focus();const sel=window.getSelection();if(savedRange){sel.removeAllRanges();sel.addRange(savedRange);}document.execCommand('foreColor',false,value);rememberSelection();}
+area.addEventListener('mouseup',rememberSelection);area.addEventListener('keyup',rememberSelection);
+const colorLabel=document.createElement('label');colorLabel.textContent='Farbe';colorLabel.title='Eigene Textfarbe';colorLabel.style.cssText='display:flex;align-items:center;gap:5px;font-size:12px';
+const color=document.createElement('input');color.type='color';color.value='#172b3a';color.title='Farbe auswählen';color.setAttribute('aria-label','Farbe auswählen');color.addEventListener('mousedown',rememberSelection);color.addEventListener('input',()=>applyColor(color.value));colorLabel.appendChild(color);toolbar.appendChild(colorLabel);
+const hex=document.createElement('input');hex.type='text';hex.placeholder='#RRGGBB';hex.maxLength=7;hex.title='HEX-Farbcode eingeben';hex.setAttribute('aria-label','HEX-Farbcode');hex.style.cssText='width:86px;padding:6px;border:1px solid #d5dde0;border-radius:6px';
+const hexButton=document.createElement('button');hexButton.type='button';hexButton.textContent='Anwenden';hexButton.title='HEX-Farbe auf markierten Text anwenden';hexButton.addEventListener('mousedown',e=>{rememberSelection();e.preventDefault();});hexButton.addEventListener('click',()=>{let v=hex.value.trim();if(/^#[0-9a-f]{3}$/i.test(v))v='#'+v.slice(1).split('').map(x=>x+x).join('');if(/^([0-9a-f]{6})$/i.test(v))v='#'+v;if(/^#[0-9a-f]{6}$/i.test(v)){applyColor(v);color.value=v;}else{hex.setCustomValidity('Bitte einen HEX-Code wie #FF6600 eingeben.');hex.reportValidity();hex.setCustomValidity('');}});toolbar.append(hex,hexButton);
 const font=document.createElement('select');font.title='Schriftart';font.setAttribute('aria-label','Schriftart');
-for(const [label,value] of [['Schriftart',''],['Barlow','Barlow'],['Barlow Condensed','Barlow Condensed'],['Arial','Arial'],['Georgia','Georgia'],['Verdana','Verdana']]){const o=document.createElement('option');o.textContent=label;o.value=value;font.appendChild(o);}
+for(const [label,value] of [['Schriftart',''],['Barlow','Barlow'],['Barlow Condensed','Barlow Condensed'],['Arial','Arial'],['Georgia','Georgia'],['Verdana','Verdana'],['Times New Roman','Times New Roman'],['Monotype Corsiva','Monotype Corsiva'],['Trebuchet MS','Trebuchet MS'],['Courier New','Courier New'],['Comic Sans MS','Comic Sans MS'],['Palatino Linotype','Palatino Linotype'],['Impact','Impact']]){const o=document.createElement('option');o.textContent=label;o.value=value;font.appendChild(o);}
 font.addEventListener('change',()=>{if(font.value){area.focus();document.execCommand('fontName',false,font.value);font.value='';}});toolbar.appendChild(font);
 wrap.append(toolbar,area);mount.replaceChildren(wrap);return {area,getHtml:()=>safeForumHtml(area.innerHTML),getText:()=>area.innerText.trim()};
 }
