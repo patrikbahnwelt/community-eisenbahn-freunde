@@ -114,7 +114,7 @@ if(child.nodeType!==Node.ELEMENT_NODE)continue;
 const tag=child.tagName;
 if(!allowed.has(tag)){out+=clean(child);continue;}
 let styles=[];
-if(tag==='SPAN'||tag==='FONT'){
+{
 const color=normalizeColor(child.style.color||child.getAttribute('color'));
 if(color)styles.push('color:'+color);
 const rawFont=String((tag==='FONT'?child.getAttribute('face'):child.style.fontFamily)||'').replace(/["']/g,'').trim();
