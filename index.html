@@ -37,7 +37,7 @@ footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 .forum-comments{border-top:1px solid #e5eaec;margin-top:14px;padding-top:12px}
 .forum-comment{background:#f4f6f7;border-radius:9px;padding:10px;margin:8px 0}
 .forum-comment p{white-space:pre-wrap;margin:6px 0}
-.rich-editor{border:1px solid #dce4e7;border-radius:9px;overflow:hidden;background:#fff;margin:6px 0 12px}.rich-toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px;background:#f4f6f7;border-bottom:1px solid #dce4e7}.rich-toolbar button{padding:6px 9px;border:1px solid #d5dde0;border-radius:6px;background:#fff;font-weight:700;cursor:pointer}.rich-toolbar select{padding:6px;border:1px solid #d5dde0;border-radius:6px;background:#fff}.rich-area{min-height:110px;padding:12px;outline:none;line-height:1.6}.rich-area:empty:before{content:attr(data-placeholder);color:#89969b}.rich-area:focus{box-shadow:inset 0 0 0 2px #dceef2}.forum-edit-actions{display:flex;gap:8px;margin:8px 0}.forum-edit-actions button{padding:8px 12px}
+.rich-editor{border:1px solid #dce4e7;border-radius:9px;overflow:hidden;background:#fff;margin:6px 0 12px}.rich-toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px;background:#f4f6f7;border-bottom:1px solid #dce4e7}.rich-toolbar button{padding:6px 9px;border:1px solid #d5dde0;border-radius:6px;background:#fff;font-weight:700;cursor:pointer}.rich-toolbar button.is-active{background:#dcecf2;border-color:#27627b;color:#123e54;box-shadow:inset 0 0 0 1px #27627b}.rich-color-swatch{display:inline-block;width:22px;height:22px;border:2px solid #fff;outline:1px solid #9aa8ae;border-radius:5px;vertical-align:middle}.rich-toolbar select{padding:6px;border:1px solid #d5dde0;border-radius:6px;background:#fff}.rich-area{min-height:110px;padding:12px;outline:none;line-height:1.6}.rich-area:empty:before{content:attr(data-placeholder);color:#89969b}.rich-area:focus{box-shadow:inset 0 0 0 2px #dceef2}.forum-edit-actions{display:flex;gap:8px;margin:8px 0}.forum-edit-actions button{padding:8px 12px}
 .forum-comment-form{display:flex;gap:8px;align-items:flex-start;margin-top:10px}
 .forum-comment-form textarea{flex:1;min-width:0;padding:10px;border:1px solid #dce4e7;border-radius:8px;font:inherit}
 .forum-comment-form button{white-space:nowrap}
@@ -104,19 +104,56 @@ function makeRichEditor(mount,placeholder,initial=''){
 const wrap=document.createElement('div');wrap.className='rich-editor';
 const toolbar=document.createElement('div');toolbar.className='rich-toolbar';
 const area=document.createElement('div');area.className='rich-area';area.contentEditable='true';area.dataset.placeholder=placeholder;area.innerHTML=safeForumHtml(initial);
-function command(label,cmd,value){const b=document.createElement('button');b.type='button';b.textContent=label;b.title=label;b.addEventListener('mousedown',e=>e.preventDefault());b.addEventListener('click',()=>{area.focus();document.execCommand(cmd,false,value||null);});toolbar.appendChild(b);}
+const formatButtons={};
+function command(label,cmd,value){
+const b=document.createElement('button');b.type='button';b.textContent=label;b.title=({bold:'Fett',italic:'Kursiv',underline:'Unterstrichen'})[cmd]||label;b.setAttribute('aria-pressed','false');
+b.addEventListener('mousedown',e=>e.preventDefault());
+b.addEventListener('click',()=>{area.focus();document.execCommand(cmd,false,value||null);updateToolbar();});
+toolbar.appendChild(b);formatButtons[cmd]=b;return b;
+}
 command('F','bold');command('K','italic');command('U','underline');
 let savedRange=null;
 function rememberSelection(){const sel=window.getSelection();if(sel&&sel.rangeCount&&area.contains(sel.anchorNode))savedRange=sel.getRangeAt(0).cloneRange();}
-function applyColor(value){if(!/^#[0-9a-f]{6}$/i.test(value))return;area.focus();const sel=window.getSelection();if(savedRange){sel.removeAllRanges();sel.addRange(savedRange);}document.execCommand('foreColor',false,value);rememberSelection();}
-area.addEventListener('mouseup',rememberSelection);area.addEventListener('keyup',rememberSelection);
+function restoreSelection(){const sel=window.getSelection();if(savedRange){sel.removeAllRanges();sel.addRange(savedRange);}area.focus();}
+function updateToolbar(){
+if(!area.contains(document.activeElement)&&!savedRange)return;
+for(const [cmd,b] of Object.entries(formatButtons)){
+let active=false;try{active=document.queryCommandState(cmd);}catch(e){}
+b.classList.toggle('is-active',active);b.setAttribute('aria-pressed',String(active));
+}
+const sel=window.getSelection();
+if(sel&&sel.rangeCount&&area.contains(sel.anchorNode)){
+const node=sel.anchorNode.nodeType===Node.TEXT_NODE?sel.anchorNode.parentElement:sel.anchorNode;
+if(node&&area.contains(node)){
+const computed=getComputedStyle(node);
+const current=computed.color;
+const rgb=current.match(/\d+/g);
+if(rgb&&rgb.length>=3){
+const toHex=v=>Number(v).toString(16).padStart(2,'0');
+const hexValue='#'+rgb.slice(0,3).map(toHex).join('');
+color.value=hexValue;hex.value=hexValue;colorSwatch.style.backgroundColor=hexValue;
+}
+}
+}
+}
+area.addEventListener('mouseup',()=>{rememberSelection();updateToolbar();});
+area.addEventListener('keyup',()=>{rememberSelection();updateToolbar();});
+area.addEventListener('input',updateToolbar);
+document.addEventListener('selectionchange',()=>{const sel=window.getSelection();if(sel&&sel.rangeCount&&area.contains(sel.anchorNode)){rememberSelection();updateToolbar();}});
+function applyColor(value){
+if(!/^#[0-9a-f]{6}$/i.test(value))return;
+restoreSelection();document.execCommand('styleWithCSS',false,true);document.execCommand('foreColor',false,value);rememberSelection();
+color.value=value;hex.value=value;colorSwatch.style.backgroundColor=value;updateToolbar();
+}
 const colorLabel=document.createElement('label');colorLabel.textContent='Farbe';colorLabel.title='Eigene Textfarbe';colorLabel.style.cssText='display:flex;align-items:center;gap:5px;font-size:12px';
-const color=document.createElement('input');color.type='color';color.value='#172b3a';color.title='Farbe auswählen';color.setAttribute('aria-label','Farbe auswählen');color.addEventListener('mousedown',rememberSelection);color.addEventListener('input',()=>applyColor(color.value));colorLabel.appendChild(color);toolbar.appendChild(colorLabel);
+const color=document.createElement('input');color.type='color';color.value='#172b3a';color.title='Farbe auswählen';color.setAttribute('aria-label','Farbe auswählen');color.addEventListener('mousedown',rememberSelection);color.addEventListener('input',()=>applyColor(color.value));
+const colorSwatch=document.createElement('span');colorSwatch.className='rich-color-swatch';colorSwatch.title='Aktuell ausgewählte Textfarbe';colorSwatch.style.backgroundColor=color.value;
+colorLabel.append(color,colorSwatch);toolbar.appendChild(colorLabel);
 const hex=document.createElement('input');hex.type='text';hex.placeholder='#RRGGBB';hex.maxLength=7;hex.title='HEX-Farbcode eingeben';hex.setAttribute('aria-label','HEX-Farbcode');hex.style.cssText='width:86px;padding:6px;border:1px solid #d5dde0;border-radius:6px';
-const hexButton=document.createElement('button');hexButton.type='button';hexButton.textContent='Anwenden';hexButton.title='HEX-Farbe auf markierten Text anwenden';hexButton.addEventListener('mousedown',e=>{rememberSelection();e.preventDefault();});hexButton.addEventListener('click',()=>{let v=hex.value.trim();if(/^#[0-9a-f]{3}$/i.test(v))v='#'+v.slice(1).split('').map(x=>x+x).join('');if(/^([0-9a-f]{6})$/i.test(v))v='#'+v;if(/^#[0-9a-f]{6}$/i.test(v)){applyColor(v);color.value=v;}else{hex.setCustomValidity('Bitte einen HEX-Code wie #FF6600 eingeben.');hex.reportValidity();hex.setCustomValidity('');}});toolbar.append(hex,hexButton);
+const hexButton=document.createElement('button');hexButton.type='button';hexButton.textContent='Anwenden';hexButton.title='HEX-Farbe auf markierten Text anwenden';hexButton.addEventListener('mousedown',e=>{rememberSelection();e.preventDefault();});hexButton.addEventListener('click',()=>{let v=hex.value.trim();if(/^#[0-9a-f]{3}$/i.test(v))v='#'+v.slice(1).split('').map(x=>x+x).join('');if(/^([0-9a-f]{6})$/i.test(v))v='#'+v;if(/^#[0-9a-f]{6}$/i.test(v))applyColor(v);else{hex.setCustomValidity('Bitte einen HEX-Code wie #FF6600 eingeben.');hex.reportValidity();hex.setCustomValidity('');}});toolbar.append(hex,hexButton);
 const font=document.createElement('select');font.title='Schriftart';font.setAttribute('aria-label','Schriftart');
 for(const [label,value] of [['Schriftart',''],['Barlow','Barlow'],['Barlow Condensed','Barlow Condensed'],['Arial','Arial'],['Georgia','Georgia'],['Verdana','Verdana'],['Times New Roman','Times New Roman'],['Monotype Corsiva','Monotype Corsiva'],['Trebuchet MS','Trebuchet MS'],['Courier New','Courier New'],['Comic Sans MS','Comic Sans MS'],['Palatino Linotype','Palatino Linotype'],['Impact','Impact']]){const o=document.createElement('option');o.textContent=label;o.value=value;font.appendChild(o);}
-font.addEventListener('change',()=>{if(font.value){area.focus();document.execCommand('fontName',false,font.value);font.value='';}});toolbar.appendChild(font);
+font.addEventListener('mousedown',rememberSelection);font.addEventListener('change',()=>{if(font.value){restoreSelection();document.execCommand('fontName',false,font.value);rememberSelection();font.value='';updateToolbar();}});toolbar.appendChild(font);
 wrap.append(toolbar,area);mount.replaceChildren(wrap);return {area,getHtml:()=>safeForumHtml(area.innerHTML),getText:()=>area.innerText.trim()};
 }
 
