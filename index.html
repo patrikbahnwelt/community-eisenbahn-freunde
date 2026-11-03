@@ -209,17 +209,34 @@ form.addEventListener('submit',async e=>{e.preventDefault();if(!editor.getText()
 
 async function submitForumPost(e){
 e.preventDefault();
-const {data:{user}}=await supabaseClient.auth.getUser();
-if(!user){alert('Bitte melde dich an, um einen Beitrag zu veröffentlichen.');document.getElementById('anmelden').scrollIntoView({behavior:'smooth'});return;}
+const form=e.currentTarget;
+const button=form.querySelector('button[type="submit"]');
+const originalText=button.textContent;
+button.disabled=true;
+button.textContent='Wird veröffentlicht …';
+try{
+const {data:{user},error:userError}=await supabaseClient.auth.getUser();
+if(userError)throw userError;
+if(!user){alert('Deine Anmeldung konnte nicht erkannt werden. Bitte lade die Seite neu und melde dich erneut an.');return;}
 const title=document.getElementById('forum-title').value.trim();
 const category=document.getElementById('forum-category').value;
 const content=window.forumPostEditor?.getHtml()||'';
+if(!title){alert('Bitte gib eine Überschrift ein.');return;}
+if(!category){alert('Bitte wähle eine Kategorie aus.');return;}
 if(!window.forumPostEditor?.getText()){alert('Bitte schreibe zuerst deinen Beitrag.');return;}
-const button=e.target.querySelector('button[type="submit"]');button.disabled=true;
 const {error}=await supabaseClient.from('forum_posts').insert({user_id:user.id,title,category,content});
+if(error)throw error;
+form.reset();
+if(window.forumPostEditor)window.forumPostEditor.area.innerHTML='';
+await loadForumPosts();
+alert('Dein Beitrag wurde veröffentlicht. Vielen Dank!');
+}catch(error){
+console.error('Fehler beim Veröffentlichen des Forum-Beitrags:',error);
+alert('Der Beitrag konnte nicht veröffentlicht werden. Technische Meldung: '+(error?.message||String(error)));
+}finally{
 button.disabled=false;
-if(error){alert('Beitrag konnte nicht veröffentlicht werden: '+error.message);return;}
-e.target.reset();if(window.forumPostEditor)window.forumPostEditor.area.innerHTML='';await loadForumPosts();alert('Dein Beitrag wurde veröffentlicht. Vielen Dank!');
+button.textContent=originalText;
+}
 }
 
 async function addSighting(e){e.preventDefault();const {data:{user},error:userError}=await supabaseClient.auth.getUser();if(userError||!user){alert('Bitte melde dich zuerst im Mitgliederbereich an, um eine Sichtung zu speichern.');document.getElementById('anmelden').scrollIntoView({behavior:'smooth'});return;}const station=document.getElementById('station').value.trim(),train=document.getElementById('train').value,num=document.getElementById('number').value.trim(),dir=document.getElementById('direction').value.trim(),note=document.getElementById('note').value.trim();const {error}=await supabaseClient.from('sightings').insert({user_id:user.id,station:station,train_type:train,train_number:num||null,direction:dir||null,note:note||null});if(error){alert('Die Sichtung konnte nicht gespeichert werden: '+error.message);return;}e.target.reset();await loadSightings();alert('Deine Sichtung wurde dauerhaft gespeichert. Vielen Dank!');}
