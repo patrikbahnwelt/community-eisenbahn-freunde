@@ -26,6 +26,18 @@ main{min-width:0}.heading{display:flex;justify-content:space-between;align-items
 .gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-top:18px}.photo-card{overflow:hidden;border:1px solid #e5eaec;border-radius:12px;background:white}.photo-card img{display:block;width:100%;height:180px;object-fit:cover;background:#edf3f5}.photo-card div{padding:11px}.photo-card h3{margin:0 0 5px;font-size:14px}.photo-card p{margin:4px 0;color:var(--muted);font-size:12px}.gallery-empty{padding:18px;border:1px dashed #cbd6da;border-radius:10px;color:var(--muted);font-size:13px}.gallery-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:700px){.gallery-form-grid{grid-template-columns:1fr}}
 footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 @media(max-width:700px){header{align-items:flex-start;flex-direction:column}.hero{grid-template-columns:1fr;padding-top:38px}.train-art{padding:18px;font-size:45px}.wrap{grid-template-columns:1fr}.card{grid-template-columns:60px 1fr}}
+
+.forum-post{background:white;border:1px solid #e5eaec;border-radius:13px;padding:18px;margin:14px 0}
+.forum-post h3{margin:8px 0;color:var(--navy)}
+.forum-meta{font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.forum-content{white-space:pre-wrap;line-height:1.65;margin:12px 0}
+.forum-comments{border-top:1px solid #e5eaec;margin-top:14px;padding-top:12px}
+.forum-comment{background:#f4f6f7;border-radius:9px;padding:10px;margin:8px 0}
+.forum-comment p{white-space:pre-wrap;margin:6px 0}
+.forum-comment-form{display:flex;gap:8px;align-items:flex-start;margin-top:10px}
+.forum-comment-form textarea{flex:1;min-width:0;padding:10px;border:1px solid #dce4e7;border-radius:8px;font:inherit}
+.forum-comment-form button{white-space:nowrap}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -51,7 +63,102 @@ supabaseClient.auth.onAuthStateChange(()=>{updateAuthStatus();});
 updateAuthStatus();
 
   window.sightingsMarkup=document.getElementById('main').innerHTML;
-  function show(page){document.querySelectorAll('aside button').forEach(b=>b.classList.remove('active'));let n=document.getElementById('nav-'+page);if(n)n.classList.add('active');let m=document.getElementById('main');m.style.display='block';if(page==='sichtungen'){m.innerHTML=window.sightingsMarkup||m.innerHTML;loadSightings();return}if(page==='galerie'){renderGallery();return}m.innerHTML='<section class="formbox"><div class="kicker">AUSTAUSCH & DISKUSSION</div><h2>Das Forum</h2><p>Hier entsteht Platz für Fragen, Streckenthemen, Fahrzeugdiskussionen und alles, was Eisenbahn-Freunde bewegt.</p><div class="notice">Das Forum wird im nächsten Entwicklungsschritt mit Mitgliederkonten und Datenbank aktiviert.</div></section>'}
+  function show(page){
+document.querySelectorAll('aside button').forEach(b=>b.classList.remove('active'));
+let n=document.getElementById('nav-'+page);if(n)n.classList.add('active');
+let m=document.getElementById('main');m.style.display='block';
+if(page==='sichtungen'){m.innerHTML=window.sightingsMarkup||m.innerHTML;loadSightings();return}
+if(page==='galerie'){renderGallery();return}
+if(page==='forum'){renderForum();return}
+m.innerHTML='<section class="formbox"><h2>Bereich</h2></section>';
+}
+
+async function renderForum(){
+const m=document.getElementById('main');
+m.innerHTML=`<section class="formbox"><div class="kicker">AUSTAUSCH & DISKUSSION</div><h2>Das Forum</h2><p>Fragen, Streckenthemen, Fahrzeugdiskussionen und alles, was Eisenbahn-Freunde bewegt.</p><div id="forum-status" class="notice">Forum wird geladen …</div></section>
+<section class="formbox"><h3>✍️ Neuen Beitrag schreiben</h3><form id="forum-post-form">
+<label>Überschrift *<input id="forum-title" required maxlength="150" placeholder="Worum geht es?"></label>
+<label>Kategorie *<select id="forum-category" required><option value="">Bitte auswählen</option><option>Allgemeines</option><option>Fahrzeuge</option><option>Strecken & Infrastruktur</option><option>Aktuelle Sichtungen</option><option>Fotografie</option><option>Fragen & Hilfe</option></select></label>
+<label>Dein Beitrag *<textarea id="forum-content" required rows="5" maxlength="10000" placeholder="Schreibe hier deinen Beitrag …"></textarea></label>
+<button class="primary" type="submit">Beitrag veröffentlichen</button>
+</form><p class="note">Zum Schreiben und Kommentieren musst du angemeldet sein.</p></section>
+<section><div class="heading"><div><h2>Beiträge der Community</h2><p>Neueste Diskussionen zuerst</p></div></div><div id="forum-posts"><div class="gallery-empty">Beiträge werden geladen …</div></div></section>`;
+document.getElementById('forum-post-form').addEventListener('submit',submitForumPost);
+await loadForumPosts();
+}
+
+async function loadForumPosts(){
+const status=document.getElementById('forum-status');
+const list=document.getElementById('forum-posts');
+if(!list)return;
+const {data:posts,error}=await supabaseClient.from('forum_posts').select('id,user_id,title,category,content,created_at').order('created_at',{ascending:false}).limit(100);
+if(error){if(status)status.textContent='Beiträge konnten nicht geladen werden: '+error.message;list.innerHTML='<div class="gallery-empty">Bitte prüfe die Anmeldung und die Forum-Berechtigungen.</div>';return;}
+const userIds=[...new Set((posts||[]).map(p=>p.user_id).filter(Boolean))];
+let names=new Map();
+if(userIds.length){const {data:profiles}=await supabaseClient.from('profiles').select('id,username').in('id',userIds);for(const p of (profiles||[]))names.set(p.id,p.username||'Mitglied');}
+if(status)status.textContent=(posts||[]).length+' Beitrag/Beiträge gefunden.';
+list.innerHTML='';
+if(!posts||posts.length===0){list.innerHTML='<div class="gallery-empty">Noch keine Beiträge vorhanden. Starte die erste Diskussion!</div>';return;}
+for(const post of posts){
+const article=document.createElement('article');article.className='forum-post';
+const tag=document.createElement('span');tag.className='tag';tag.textContent=post.category||'Allgemein';
+const title=document.createElement('h3');title.textContent=post.title||'Ohne Titel';
+const meta=document.createElement('div');meta.className='forum-meta';
+const author=document.createElement('span');author.textContent='👤 '+(names.get(post.user_id)||'Mitglied');
+const date=document.createElement('span');date.textContent='🕒 '+new Date(post.created_at).toLocaleString('de-DE');
+meta.append(author,date);
+const content=document.createElement('div');content.className='forum-content';content.textContent=post.content||'';
+const comments=document.createElement('div');comments.className='forum-comments';comments.id='forum-comments-'+post.id;
+article.append(tag,title,meta,content,comments);list.appendChild(article);
+await loadForumComments(post.id,comments);
+}
+}
+
+async function loadForumComments(postId,container){
+const {data:comments,error}=await supabaseClient.from('forum_comments').select('id,post_id,user_id,content,created_at').eq('post_id',postId).order('created_at',{ascending:true});
+container.innerHTML='';
+const heading=document.createElement('strong');heading.textContent='💬 Kommentare';container.appendChild(heading);
+if(error){const msg=document.createElement('p');msg.className='note';msg.textContent='Kommentare konnten nicht geladen werden.';container.appendChild(msg);return;}
+const userIds=[...new Set((comments||[]).map(c=>c.user_id).filter(Boolean))];
+let names=new Map();
+if(userIds.length){const {data:profiles}=await supabaseClient.from('profiles').select('id,username').in('id',userIds);for(const p of (profiles||[]))names.set(p.id,p.username||'Mitglied');}
+for(const comment of (comments||[])){
+const item=document.createElement('div');item.className='forum-comment';
+const by=document.createElement('div');by.className='forum-meta';by.textContent=(names.get(comment.user_id)||'Mitglied')+' · '+new Date(comment.created_at).toLocaleString('de-DE');
+const textNode=document.createElement('p');textNode.textContent=comment.content||'';
+item.append(by,textNode);container.appendChild(item);
+}
+const form=document.createElement('form');form.className='forum-comment-form';
+const area=document.createElement('textarea');area.required=true;area.maxLength=3000;area.rows=2;area.placeholder='Kommentar schreiben …';
+const button=document.createElement('button');button.className='primary';button.type='submit';button.textContent='Senden';
+form.append(area,button);
+form.addEventListener('submit',async e=>{
+e.preventDefault();
+const {data:{user}}=await supabaseClient.auth.getUser();
+if(!user){alert('Bitte melde dich an, um einen Kommentar zu schreiben.');return;}
+button.disabled=true;
+const {error:insertError}=await supabaseClient.from('forum_comments').insert({post_id:postId,user_id:user.id,content:area.value.trim()});
+button.disabled=false;
+if(insertError){alert('Kommentar konnte nicht gespeichert werden: '+insertError.message);return;}
+await loadForumComments(postId,container);
+});
+container.appendChild(form);
+}
+
+async function submitForumPost(e){
+e.preventDefault();
+const {data:{user}}=await supabaseClient.auth.getUser();
+if(!user){alert('Bitte melde dich an, um einen Beitrag zu veröffentlichen.');document.getElementById('anmelden').scrollIntoView({behavior:'smooth'});return;}
+const title=document.getElementById('forum-title').value.trim();
+const category=document.getElementById('forum-category').value;
+const content=document.getElementById('forum-content').value.trim();
+const button=e.target.querySelector('button[type="submit"]');button.disabled=true;
+const {error}=await supabaseClient.from('forum_posts').insert({user_id:user.id,title,category,content});
+button.disabled=false;
+if(error){alert('Beitrag konnte nicht veröffentlicht werden: '+error.message);return;}
+e.target.reset();await loadForumPosts();alert('Dein Beitrag wurde veröffentlicht. Vielen Dank!');
+}
+
 async function addSighting(e){e.preventDefault();const {data:{user},error:userError}=await supabaseClient.auth.getUser();if(userError||!user){alert('Bitte melde dich zuerst im Mitgliederbereich an, um eine Sichtung zu speichern.');document.getElementById('anmelden').scrollIntoView({behavior:'smooth'});return;}const station=document.getElementById('station').value.trim(),train=document.getElementById('train').value,num=document.getElementById('number').value.trim(),dir=document.getElementById('direction').value.trim(),note=document.getElementById('note').value.trim();const {error}=await supabaseClient.from('sightings').insert({user_id:user.id,station:station,train_type:train,train_number:num||null,direction:dir||null,note:note||null});if(error){alert('Die Sichtung konnte nicht gespeichert werden: '+error.message);return;}e.target.reset();await loadSightings();alert('Deine Sichtung wurde dauerhaft gespeichert. Vielen Dank!');}
 async function loadSightings(){const cards=document.getElementById('cards');if(!cards)return;const {data,error}=await supabaseClient.from('sightings').select('id,user_id,station,train_type,train_number,direction,note,created_at').order('created_at',{ascending:false}).limit(100);if(error){console.error('Sichtungen konnten nicht geladen werden:',error.message);return;}cards.innerHTML='';for(const s of (data||[])){const card=document.createElement('article');card.className='card';const time=document.createElement('div');time.className='time';const date=new Date(s.created_at);time.textContent=date.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});const small=document.createElement('small');small.textContent=date.toLocaleDateString('de-DE');time.appendChild(small);const body=document.createElement('div');const tag=document.createElement('span');tag.className='tag';tag.textContent=s.train_type||'Zug';const h=document.createElement('h3');h.textContent=s.station;const number=document.createElement('b');number.textContent=s.train_number||'';const direction=document.createElement('p');direction.textContent=s.direction?'→ '+s.direction:'';const note=document.createElement('p');note.className='note';note.textContent=s.note||'';body.append(tag,h,number,direction,note);
 const {data:{user}}=await supabaseClient.auth.getUser();
