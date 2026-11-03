@@ -23,7 +23,8 @@ main{min-width:0}.heading{display:flex;justify-content:space-between;align-items
 .card{padding:17px;margin-bottom:12px;display:grid;grid-template-columns:75px 1fr;gap:14px}.time{font-weight:800;color:#536873}.time small{display:block;color:#9aa6ab;font-size:10px}.tag{display:inline-block;background:#edf3f5;color:#38677b;border-radius:5px;padding:4px 8px;font-size:11px;font-weight:800}.card h3{margin:9px 0 3px;color:var(--navy)}.card p{margin:6px 0;color:#697981;font-size:13px}.note{font-size:12px!important}.sighting-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.sighting-actions button{padding:8px 11px;font-size:12px}.edit-sighting{display:grid;gap:8px;margin-top:12px;padding:12px;background:#f4f6f7;border-radius:9px}.edit-sighting input,.edit-sighting textarea,.edit-sighting select{width:100%;padding:9px;border:1px solid #dce4e7;border-radius:7px;font:inherit}.edit-sighting label{font-size:11px;font-weight:700}.danger{background:#fff0ed;color:#a33d27;border:1px solid #edc8be}
 .formbox{background:white;border:1px solid #e5eaec;border-radius:13px;padding:20px;margin:15px 0}.formbox label{display:block;font-size:12px;font-weight:700;margin:12px 0}.formbox input,.formbox select,.formbox textarea{display:block;width:100%;margin-top:6px;padding:11px;border:1px solid #dce4e7;border-radius:8px;font:inherit}
 .notice{background:#fff8f3;border:1px solid #f1d8ca;color:#87503b;padding:12px;border-radius:9px;font-size:12px;line-height:1.5;margin-top:12px}
-.photo-edit-button{margin-top:10px;padding:8px 10px;font-size:12px}.photo-edit-form{display:grid;gap:8px;margin-top:10px;padding:10px;background:#f4f6f7;border-radius:9px}.photo-edit-form label{font-size:11px;font-weight:700}.photo-edit-form input,.photo-edit-form select{width:100%;padding:9px;border:1px solid #dce4e7;border-radius:7px;font:inherit}\n.gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-top:18px}.photo-card{overflow:hidden;border:1px solid #e5eaec;border-radius:12px;background:white}.photo-card img{display:block;width:100%;height:180px;object-fit:cover;background:#edf3f5}.photo-card div{padding:11px}.photo-card h3{margin:0 0 5px;font-size:14px}.photo-card p{margin:4px 0;color:var(--muted);font-size:12px}.gallery-empty{padding:18px;border:1px dashed #cbd6da;border-radius:10px;color:var(--muted);font-size:13px}.gallery-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:700px){.gallery-form-grid{grid-template-columns:1fr}}
+.photo-edit-button{margin-top:10px;padding:8px 10px;font-size:12px}.photo-edit-form{display:grid;gap:8px;margin-top:10px;padding:10px;background:#f4f6f7;border-radius:9px}.photo-edit-form label{font-size:11px;font-weight:700}.photo-edit-form input,.photo-edit-form select{width:100%;padding:9px;border:1px solid #dce4e7;border-radius:7px;font:inherit}
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-top:18px}.photo-card{overflow:hidden;border:1px solid #e5eaec;border-radius:12px;background:white}.photo-card img{display:block;width:100%;height:180px;object-fit:cover;background:#edf3f5}.photo-card div{padding:11px}.photo-card h3{margin:0 0 5px;font-size:14px}.photo-card p{margin:4px 0;color:var(--muted);font-size:12px}.gallery-empty{padding:18px;border:1px dashed #cbd6da;border-radius:10px;color:var(--muted);font-size:13px}.gallery-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:700px){.gallery-form-grid{grid-template-columns:1fr}}
 footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 @media(max-width:700px){header{align-items:flex-start;flex-direction:column}.hero{grid-template-columns:1fr;padding-top:38px}.train-art{padding:18px;font-size:45px}.wrap{grid-template-columns:1fr}.card{grid-template-columns:60px 1fr}}
 
@@ -84,6 +85,7 @@ m.innerHTML=`<section class="formbox"><div class="kicker">AUSTAUSCH & DISKUSSION
 <button class="primary" type="submit">Beitrag veröffentlichen</button>
 </form><p class="note">Zum Schreiben und Kommentieren musst du angemeldet sein.</p></section>
 <section><div class="heading"><div><h2>Beiträge der Community</h2><p>Neueste Diskussionen zuerst</p></div></div><div id="forum-posts"><div class="gallery-empty">Beiträge werden geladen …</div></div></section>`;
+window.forumPostEditor=makeRichEditor(document.getElementById('forum-content-editor'),'Schreibe hier deinen Beitrag …');
 document.getElementById('forum-post-form').addEventListener('submit',submitForumPost);
 await loadForumPosts();
 }
@@ -129,7 +131,10 @@ const date=document.createElement('span');date.textContent='🕒 '+new Date(post
 meta.append(author,date);
 const content=document.createElement('div');content.className='forum-content';content.innerHTML=safeForumHtml(post.content||'');
 const comments=document.createElement('div');comments.className='forum-comments';comments.id='forum-comments-'+post.id;
-article.append(tag,title,meta,content);\nconst {data:{user:viewer}}=await supabaseClient.auth.getUser();\nif(viewer&&viewer.id===post.user_id){const edit=document.createElement('button');edit.type='button';edit.textContent='✏️ Beitrag bearbeiten';edit.addEventListener('click',()=>showForumPostEditor(post,article));article.appendChild(edit);}\narticle.appendChild(comments);list.appendChild(article);
+article.append(tag,title,meta,content);
+const {data:{user:viewer}}=await supabaseClient.auth.getUser();
+if(viewer&&viewer.id===post.user_id){const edit=document.createElement('button');edit.type='button';edit.textContent='✏️ Beitrag bearbeiten';edit.addEventListener('click',()=>showForumPostEditor(post,article));article.appendChild(edit);}
+article.appendChild(comments);list.appendChild(article);
 await loadForumComments(post.id,comments);
 }
 }
@@ -145,8 +150,11 @@ if(userIds.length){const {data:profiles}=await supabaseClient.from('profiles').s
 for(const comment of (comments||[])){
 const item=document.createElement('div');item.className='forum-comment';
 const by=document.createElement('div');by.className='forum-meta';by.textContent=(names.get(comment.user_id)||'Mitglied')+' · '+new Date(comment.created_at).toLocaleString('de-DE');
-const textNode=document.createElement('p');textNode.textContent=comment.content||'';
-item.append(by,textNode);container.appendChild(item);
+const textNode=document.createElement('p');textNode.innerHTML=safeForumHtml(comment.content||'');
+item.append(by,textNode);
+const {data:{user:viewer}}=await supabaseClient.auth.getUser();
+if(viewer&&viewer.id===comment.user_id){const edit=document.createElement('button');edit.type='button';edit.textContent='✏️ Bearbeiten';edit.addEventListener('click',()=>showForumCommentEditor(comment,item,postId,container));item.appendChild(edit);}
+container.appendChild(item);
 }
 const form=document.createElement('form');form.className='forum-comment-form';
 const editorMount=document.createElement('div');const editor=makeRichEditor(editorMount,'Kommentar schreiben …');
@@ -156,13 +164,36 @@ form.addEventListener('submit',async e=>{
 e.preventDefault();
 const {data:{user}}=await supabaseClient.auth.getUser();
 if(!user){alert('Bitte melde dich an, um einen Kommentar zu schreiben.');return;}
+if(!editor.getText()){alert('Bitte schreibe zuerst einen Kommentar.');return;}
 button.disabled=true;
 const {error:insertError}=await supabaseClient.from('forum_comments').insert({post_id:postId,user_id:user.id,content:editor.getHtml()});
 button.disabled=false;
-if(insertError){alert('Kommentar konnte nicht gespeichert werden: '+insertError.message);return;}if(!editor.getText()){alert('Bitte schreibe zuerst einen Kommentar.');return;}
+if(insertError){alert('Kommentar konnte nicht gespeichert werden: '+insertError.message);return;}
 await loadForumComments(postId,container);
 });
 container.appendChild(form);
+}
+
+function showForumPostEditor(post,article){
+const old=article.querySelector('.forum-post-edit-form');if(old){old.remove();return;}
+const form=document.createElement('form');form.className='forum-post-edit-form formbox';
+const title=document.createElement('input');title.required=true;title.maxLength=150;title.value=post.title||'';
+const titleLabel=document.createElement('label');titleLabel.textContent='Überschrift';titleLabel.appendChild(title);
+const editorMount=document.createElement('div');const editor=makeRichEditor(editorMount,'Beitrag bearbeiten …',post.content||'');
+const save=document.createElement('button');save.type='submit';save.className='primary';save.textContent='Änderungen speichern';
+const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Abbrechen';cancel.addEventListener('click',()=>form.remove());
+const actions=document.createElement('div');actions.className='forum-edit-actions';actions.append(save,cancel);
+form.append(titleLabel,editorMount,actions);article.appendChild(form);
+form.addEventListener('submit',async e=>{e.preventDefault();if(!editor.getText()){alert('Der Beitrag darf nicht leer sein.');return;}const {data:{user}}=await supabaseClient.auth.getUser();if(!user||user.id!==post.user_id){alert('Du kannst nur deine eigenen Beiträge bearbeiten.');return;}save.disabled=true;const {error}=await supabaseClient.from('forum_posts').update({title:title.value.trim(),content:editor.getHtml()}).eq('id',post.id).eq('user_id',user.id);save.disabled=false;if(error){alert('Beitrag konnte nicht bearbeitet werden: '+error.message);return;}await loadForumPosts();alert('Dein Beitrag wurde aktualisiert.');});
+}
+function showForumCommentEditor(comment,item,postId,container){
+const old=item.querySelector('.forum-comment-edit-form');if(old){old.remove();return;}
+const form=document.createElement('form');form.className='forum-comment-edit-form';
+const mount=document.createElement('div');const editor=makeRichEditor(mount,'Kommentar bearbeiten …',comment.content||'');
+const save=document.createElement('button');save.type='submit';save.className='primary';save.textContent='Änderungen speichern';
+const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Abbrechen';cancel.addEventListener('click',()=>form.remove());
+const actions=document.createElement('div');actions.className='forum-edit-actions';actions.append(save,cancel);form.append(mount,actions);item.appendChild(form);
+form.addEventListener('submit',async e=>{e.preventDefault();if(!editor.getText()){alert('Der Kommentar darf nicht leer sein.');return;}const {data:{user}}=await supabaseClient.auth.getUser();if(!user||user.id!==comment.user_id){alert('Du kannst nur deine eigenen Kommentare bearbeiten.');return;}save.disabled=true;const {error}=await supabaseClient.from('forum_comments').update({content:editor.getHtml()}).eq('id',comment.id).eq('user_id',user.id);save.disabled=false;if(error){alert('Kommentar konnte nicht bearbeitet werden: '+error.message);return;}await loadForumComments(postId,container);alert('Dein Kommentar wurde aktualisiert.');});
 }
 
 async function submitForumPost(e){
@@ -171,12 +202,13 @@ const {data:{user}}=await supabaseClient.auth.getUser();
 if(!user){alert('Bitte melde dich an, um einen Beitrag zu veröffentlichen.');document.getElementById('anmelden').scrollIntoView({behavior:'smooth'});return;}
 const title=document.getElementById('forum-title').value.trim();
 const category=document.getElementById('forum-category').value;
-const content=window.forumPostEditor?.getHtml()||'';\nif(!window.forumPostEditor?.getText()){alert('Bitte schreibe zuerst deinen Beitrag.');return;}
+const content=window.forumPostEditor?.getHtml()||'';
+if(!window.forumPostEditor?.getText()){alert('Bitte schreibe zuerst deinen Beitrag.');return;}
 const button=e.target.querySelector('button[type="submit"]');button.disabled=true;
 const {error}=await supabaseClient.from('forum_posts').insert({user_id:user.id,title,category,content});
 button.disabled=false;
 if(error){alert('Beitrag konnte nicht veröffentlicht werden: '+error.message);return;}
-e.target.reset();await loadForumPosts();alert('Dein Beitrag wurde veröffentlicht. Vielen Dank!');
+e.target.reset();if(window.forumPostEditor)window.forumPostEditor.area.innerHTML='';await loadForumPosts();alert('Dein Beitrag wurde veröffentlicht. Vielen Dank!');
 }
 
 async function addSighting(e){e.preventDefault();const {data:{user},error:userError}=await supabaseClient.auth.getUser();if(userError||!user){alert('Bitte melde dich zuerst im Mitgliederbereich an, um eine Sichtung zu speichern.');document.getElementById('anmelden').scrollIntoView({behavior:'smooth'});return;}const station=document.getElementById('station').value.trim(),train=document.getElementById('train').value,num=document.getElementById('number').value.trim(),dir=document.getElementById('direction').value.trim(),note=document.getElementById('note').value.trim();const {error}=await supabaseClient.from('sightings').insert({user_id:user.id,station:station,train_type:train,train_number:num||null,direction:dir||null,note:note||null});if(error){alert('Die Sichtung konnte nicht gespeichert werden: '+error.message);return;}e.target.reset();await loadSightings();alert('Deine Sichtung wurde dauerhaft gespeichert. Vielen Dank!');}
