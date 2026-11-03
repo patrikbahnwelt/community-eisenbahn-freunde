@@ -34,6 +34,7 @@ footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 .forum-comments{border-top:1px solid #e5eaec;margin-top:14px;padding-top:12px}
 .forum-comment{background:#f4f6f7;border-radius:9px;padding:10px;margin:8px 0}
 .forum-comment p{white-space:pre-wrap;margin:6px 0}
+.rich-editor{border:1px solid #dce4e7;border-radius:9px;overflow:hidden;background:#fff;margin:6px 0 12px}.rich-toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px;background:#f4f6f7;border-bottom:1px solid #dce4e7}.rich-toolbar button{padding:6px 9px;border:1px solid #d5dde0;border-radius:6px;background:#fff;font-weight:700;cursor:pointer}.rich-toolbar select{padding:6px;border:1px solid #d5dde0;border-radius:6px;background:#fff}.rich-area{min-height:110px;padding:12px;outline:none;line-height:1.6}.rich-area:empty:before{content:attr(data-placeholder);color:#89969b}.rich-area:focus{box-shadow:inset 0 0 0 2px #dceef2}.forum-edit-actions{display:flex;gap:8px;margin:8px 0}.forum-edit-actions button{padding:8px 12px}
 .forum-comment-form{display:flex;gap:8px;align-items:flex-start;margin-top:10px}
 .forum-comment-form textarea{flex:1;min-width:0;padding:10px;border:1px solid #dce4e7;border-radius:8px;font:inherit}
 .forum-comment-form button{white-space:nowrap}
@@ -79,12 +80,31 @@ m.innerHTML=`<section class="formbox"><div class="kicker">AUSTAUSCH & DISKUSSION
 <section class="formbox"><h3>✍️ Neuen Beitrag schreiben</h3><form id="forum-post-form">
 <label>Überschrift *<input id="forum-title" required maxlength="150" placeholder="Worum geht es?"></label>
 <label>Kategorie *<select id="forum-category" required><option value="">Bitte auswählen</option><option>Allgemeines</option><option>Fahrzeuge</option><option>Strecken & Infrastruktur</option><option>Aktuelle Sichtungen</option><option>Fotografie</option><option>Fragen & Hilfe</option></select></label>
-<label>Dein Beitrag *<textarea id="forum-content" required rows="5" maxlength="10000" placeholder="Schreibe hier deinen Beitrag …"></textarea></label>
+<label>Dein Beitrag *</label><div id="forum-content-editor"></div>
 <button class="primary" type="submit">Beitrag veröffentlichen</button>
 </form><p class="note">Zum Schreiben und Kommentieren musst du angemeldet sein.</p></section>
 <section><div class="heading"><div><h2>Beiträge der Community</h2><p>Neueste Diskussionen zuerst</p></div></div><div id="forum-posts"><div class="gallery-empty">Beiträge werden geladen …</div></div></section>`;
 document.getElementById('forum-post-form').addEventListener('submit',submitForumPost);
 await loadForumPosts();
+}
+
+function escapeRichText(value){return String(value||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+function safeForumHtml(input){
+const doc=new DOMParser().parseFromString(String(input||''),'text/html');
+const allowed=new Set(['B','STRONG','I','EM','U','BR','P','DIV','SPAN']);
+function clean(node){let out='';for(const child of node.childNodes){if(child.nodeType===Node.TEXT_NODE){out+=escapeRichText(child.nodeValue);}else if(child.nodeType===Node.ELEMENT_NODE){const tag=child.tagName;if(allowed.has(tag)){let attrs='';if(tag==='SPAN'){const color=(child.style.color||'').toLowerCase();if(/^#[0-9a-f]{6}$/.test(color)||['red','blue','green','orange','purple','black','gray'].includes(color))attrs=' style="color:'+color+'"';}out+='<'+tag.toLowerCase()+attrs+'>'+clean(child)+'</'+tag.toLowerCase()+'>'; }else{out+=clean(child);}}}return out;}
+return clean(doc.body);
+}
+function makeRichEditor(mount,placeholder,initial=''){
+const wrap=document.createElement('div');wrap.className='rich-editor';
+const toolbar=document.createElement('div');toolbar.className='rich-toolbar';
+const area=document.createElement('div');area.className='rich-area';area.contentEditable='true';area.dataset.placeholder=placeholder;area.innerHTML=safeForumHtml(initial);
+function command(label,cmd,value){const b=document.createElement('button');b.type='button';b.textContent=label;b.title=label;b.addEventListener('mousedown',e=>e.preventDefault());b.addEventListener('click',()=>{area.focus();document.execCommand(cmd,false,value||null);});toolbar.appendChild(b);}
+command('F','bold');command('K','italic');command('U','underline');
+const color=document.createElement('select');color.title='Textfarbe';color.setAttribute('aria-label','Textfarbe');
+for(const [label,value] of [['Textfarbe',''],['Schwarz','#172b3a'],['Rot','#c0392b'],['Blau','#1769aa'],['Grün','#27834a'],['Orange','#d66a35'],['Lila','#7b4ab0']]){const o=document.createElement('option');o.textContent=label;o.value=value;color.appendChild(o);}
+color.addEventListener('change',()=>{if(color.value){area.focus();document.execCommand('foreColor',false,color.value);color.value='';}});toolbar.appendChild(color);
+wrap.append(toolbar,area);mount.replaceChildren(wrap);return {area,getHtml:()=>safeForumHtml(area.innerHTML),getText:()=>area.innerText.trim()};
 }
 
 async function loadForumPosts(){
@@ -107,9 +127,9 @@ const meta=document.createElement('div');meta.className='forum-meta';
 const author=document.createElement('span');author.textContent='👤 '+(names.get(post.user_id)||'Mitglied');
 const date=document.createElement('span');date.textContent='🕒 '+new Date(post.created_at).toLocaleString('de-DE');
 meta.append(author,date);
-const content=document.createElement('div');content.className='forum-content';content.textContent=post.content||'';
+const content=document.createElement('div');content.className='forum-content';content.innerHTML=safeForumHtml(post.content||'');
 const comments=document.createElement('div');comments.className='forum-comments';comments.id='forum-comments-'+post.id;
-article.append(tag,title,meta,content,comments);list.appendChild(article);
+article.append(tag,title,meta,content);\nconst {data:{user:viewer}}=await supabaseClient.auth.getUser();\nif(viewer&&viewer.id===post.user_id){const edit=document.createElement('button');edit.type='button';edit.textContent='✏️ Beitrag bearbeiten';edit.addEventListener('click',()=>showForumPostEditor(post,article));article.appendChild(edit);}\narticle.appendChild(comments);list.appendChild(article);
 await loadForumComments(post.id,comments);
 }
 }
@@ -129,17 +149,17 @@ const textNode=document.createElement('p');textNode.textContent=comment.content|
 item.append(by,textNode);container.appendChild(item);
 }
 const form=document.createElement('form');form.className='forum-comment-form';
-const area=document.createElement('textarea');area.required=true;area.maxLength=3000;area.rows=2;area.placeholder='Kommentar schreiben …';
+const editorMount=document.createElement('div');const editor=makeRichEditor(editorMount,'Kommentar schreiben …');
 const button=document.createElement('button');button.className='primary';button.type='submit';button.textContent='Senden';
-form.append(area,button);
+form.append(editorMount,button);
 form.addEventListener('submit',async e=>{
 e.preventDefault();
 const {data:{user}}=await supabaseClient.auth.getUser();
 if(!user){alert('Bitte melde dich an, um einen Kommentar zu schreiben.');return;}
 button.disabled=true;
-const {error:insertError}=await supabaseClient.from('forum_comments').insert({post_id:postId,user_id:user.id,content:area.value.trim()});
+const {error:insertError}=await supabaseClient.from('forum_comments').insert({post_id:postId,user_id:user.id,content:editor.getHtml()});
 button.disabled=false;
-if(insertError){alert('Kommentar konnte nicht gespeichert werden: '+insertError.message);return;}
+if(insertError){alert('Kommentar konnte nicht gespeichert werden: '+insertError.message);return;}if(!editor.getText()){alert('Bitte schreibe zuerst einen Kommentar.');return;}
 await loadForumComments(postId,container);
 });
 container.appendChild(form);
@@ -151,7 +171,7 @@ const {data:{user}}=await supabaseClient.auth.getUser();
 if(!user){alert('Bitte melde dich an, um einen Beitrag zu veröffentlichen.');document.getElementById('anmelden').scrollIntoView({behavior:'smooth'});return;}
 const title=document.getElementById('forum-title').value.trim();
 const category=document.getElementById('forum-category').value;
-const content=document.getElementById('forum-content').value.trim();
+const content=window.forumPostEditor?.getHtml()||'';\nif(!window.forumPostEditor?.getText()){alert('Bitte schreibe zuerst deinen Beitrag.');return;}
 const button=e.target.querySelector('button[type="submit"]');button.disabled=true;
 const {error}=await supabaseClient.from('forum_posts').insert({user_id:user.id,title,category,content});
 button.disabled=false;
