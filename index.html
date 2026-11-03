@@ -95,8 +95,9 @@ await loadForumPosts();
 function escapeRichText(value){return String(value||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function safeForumHtml(input){
 const doc=new DOMParser().parseFromString(String(input||''),'text/html');
-const allowed=new Set(['B','STRONG','I','EM','U','BR','P','DIV','SPAN']);
-function clean(node){let out='';for(const child of node.childNodes){if(child.nodeType===Node.TEXT_NODE){out+=escapeRichText(child.nodeValue);}else if(child.nodeType===Node.ELEMENT_NODE){const tag=child.tagName;if(allowed.has(tag)){let attrs='';if(tag==='SPAN'){const color=(child.style.color||'').toLowerCase();if(/^#[0-9a-f]{6}$/.test(color)||['red','blue','green','orange','purple','black','gray'].includes(color))attrs=' style="color:'+color+'"';}out+='<'+tag.toLowerCase()+attrs+'>'+clean(child)+'</'+tag.toLowerCase()+'>'; }else{out+=clean(child);}}}return out;}
+const allowed=new Set(['B','STRONG','I','EM','U','BR','P','DIV','SPAN','FONT']);
+const safeFonts=['Barlow','Barlow Condensed','Arial','Georgia','Verdana'];
+function clean(node){let out='';for(const child of node.childNodes){if(child.nodeType===Node.TEXT_NODE){out+=escapeRichText(child.nodeValue);}else if(child.nodeType===Node.ELEMENT_NODE){const tag=child.tagName;if(allowed.has(tag)){let attrs='';if(tag==='SPAN'||tag==='FONT'){const color=(child.style.color||'').toLowerCase();const font=(tag==='FONT'?child.getAttribute('face'):child.style.fontFamily||'').replace(/[\"']/g,'').trim();let styles=[];if(/^#[0-9a-f]{6}$/.test(color)||['red','blue','green','orange','purple','black','gray'].includes(color))styles.push('color:'+color);const safeFont=safeFonts.find(f=>f.toLowerCase()===font.toLowerCase());if(safeFont)styles.push('font-family:'+safeFont);if(styles.length)attrs=' style=\"'+styles.join(';')+'\"';}const outTag=tag==='FONT'?'span':tag.toLowerCase();out+='<'+outTag+attrs+'>'+clean(child)+'</'+outTag+'>'; }else{out+=clean(child);}}}return out;}
 return clean(doc.body);
 }
 function makeRichEditor(mount,placeholder,initial=''){
@@ -108,6 +109,9 @@ command('F','bold');command('K','italic');command('U','underline');
 const color=document.createElement('select');color.title='Textfarbe';color.setAttribute('aria-label','Textfarbe');
 for(const [label,value] of [['Textfarbe',''],['Schwarz','#172b3a'],['Rot','#c0392b'],['Blau','#1769aa'],['Grün','#27834a'],['Orange','#d66a35'],['Lila','#7b4ab0']]){const o=document.createElement('option');o.textContent=label;o.value=value;color.appendChild(o);}
 color.addEventListener('change',()=>{if(color.value){area.focus();document.execCommand('foreColor',false,color.value);color.value='';}});toolbar.appendChild(color);
+const font=document.createElement('select');font.title='Schriftart';font.setAttribute('aria-label','Schriftart');
+for(const [label,value] of [['Schriftart',''],['Barlow','Barlow'],['Barlow Condensed','Barlow Condensed'],['Arial','Arial'],['Georgia','Georgia'],['Verdana','Verdana']]){const o=document.createElement('option');o.textContent=label;o.value=value;font.appendChild(o);}
+font.addEventListener('change',()=>{if(font.value){area.focus();document.execCommand('fontName',false,font.value);font.value='';}});toolbar.appendChild(font);
 wrap.append(toolbar,area);mount.replaceChildren(wrap);return {area,getHtml:()=>safeForumHtml(area.innerHTML),getText:()=>area.innerText.trim()};
 }
 
