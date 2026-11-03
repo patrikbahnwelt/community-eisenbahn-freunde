@@ -210,7 +210,7 @@ const content=document.createElement('div');content.className='forum-content';co
 const comments=document.createElement('div');comments.className='forum-comments';comments.id='forum-comments-'+post.id;
 article.append(tag,title,meta,content);
 const {data:{user:viewer}}=await supabaseClient.auth.getUser();
-if(viewer&&viewer.id===post.user_id){const edit=document.createElement('button');edit.type='button';edit.textContent='✏️ Beitrag bearbeiten';edit.addEventListener('click',()=>showForumPostEditor(post,article));article.appendChild(edit);}
+if(viewer&&viewer.id===post.user_id){const edit=document.createElement('button');edit.type='button';edit.textContent='✏️ Beitrag bearbeiten';edit.addEventListener('click',()=>{try{showForumPostEditor(post,article);}catch(error){console.error('Fehler beim Öffnen der Beitragsbearbeitung:',error);alert('Die Beitragsbearbeitung konnte nicht geöffnet werden: '+(error?.message||String(error)));}});article.appendChild(edit);}
 article.appendChild(comments);list.appendChild(article);
 await loadForumComments(post.id,comments);
 }
