@@ -222,6 +222,8 @@ await loadGallery();
 }
 async function loadGallery(){
 const status=document.getElementById('gallery-status');if(!status)return;
+const {data:{user:currentUser}}=await supabaseClient.auth.getUser();
+const currentUserId=currentUser?.id||null;
 const albumSelect=document.getElementById('photo-album');
 const {data:albums,error:albumError}=await supabaseClient.from('photo_albums').select('id,user_id,title,description,created_at').order('created_at',{ascending:false});
 if(albumError){status.textContent='Alben konnten nicht geladen werden: '+albumError.message;return;}
