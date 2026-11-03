@@ -260,7 +260,7 @@ const editorMount=document.createElement('div');const editor=makeRichEditor(edit
 const save=document.createElement('button');save.type='submit';save.className='primary';save.textContent='Änderungen speichern';
 const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Abbrechen';cancel.addEventListener('click',()=>form.remove());
 const actions=document.createElement('div');actions.className='forum-edit-actions';actions.append(save,cancel);
-form.append(titleLabel,editorMount,actions);article.appendChild(form);
+form.append(titleLabel,editorMount,actions);const commentsSection=article.querySelector('.forum-comments');if(commentsSection)article.insertBefore(form,commentsSection);else article.appendChild(form);form.scrollIntoView({behavior:'smooth',block:'center'});
 form.addEventListener('submit',async e=>{e.preventDefault();if(!editor.getText()){alert('Der Beitrag darf nicht leer sein.');return;}const {data:{user}}=await supabaseClient.auth.getUser();if(!user||user.id!==post.user_id){alert('Du kannst nur deine eigenen Beiträge bearbeiten.');return;}save.disabled=true;const {error}=await supabaseClient.from('forum_posts').update({title:title.value.trim(),content:editor.getHtml()}).eq('id',post.id).eq('user_id',user.id);save.disabled=false;if(error){alert('Beitrag konnte nicht bearbeitet werden: '+error.message);return;}await loadForumPosts();alert('Dein Beitrag wurde aktualisiert.');});
 }
 function showForumCommentEditor(comment,item,postId,container){
