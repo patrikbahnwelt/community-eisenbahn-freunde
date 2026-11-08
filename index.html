@@ -30,7 +30,18 @@ main{min-width:0}.heading{display:flex;justify-content:space-between;align-items
 footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 @media(max-width:700px){header{align-items:flex-start;flex-direction:column}.hero{min-height:390px;padding:125px max(6vw,20px) 38px;background-position:58% center;background-image:linear-gradient(90deg,rgba(8,25,37,.72) 0%,rgba(8,25,37,.42) 42%,rgba(8,25,37,.08) 78%),url('https://raw.githubusercontent.com/patrikbahnwelt/community-eisenbahn-freunde/main/community-titelbild.jpg')}.wrap{grid-template-columns:1fr}.card{grid-template-columns:60px 1fr}}
 
-.forum-post{background:white;border:1px solid #e5eaec;border-radius:13px;padding:18px;margin:14px 0}
+.forum-list-section{background:#eaf1f4;border:1px solid #d8e4e9;border-radius:16px;padding:18px;margin-top:22px}
+.forum-list-section>.heading{padding:2px 4px 8px}
+.forum-post{background:#fff;border:1px solid #d7e2e7;border-left:4px solid #7fa9ba;border-radius:13px;padding:18px;margin:14px 0;box-shadow:0 2px 8px rgba(32,62,75,.045)}
+.forum-post h3{font-size:19px}
+.forum-post>.tag{background:#e2eef2;color:#315f73}
+.forum-post>.forum-content{padding:10px 12px;background:#f8fafb;border-radius:8px}
+.forum-post>.forum-meta{margin-top:5px}
+.forum-post>.forum-comments{border-top:1px solid #dce6ea}
+.forum-comment{background:#f0f5f7;border:1px solid #e1eaee;border-radius:9px;padding:12px;margin:9px 0}
+.forum-comment-children .forum-comment{background:#f8fafb}
+.forum-thread-toggle{background:#e6f0f3;border-color:#c8dbe2;border-radius:7px}
+.forum-comment-children{border-left-color:#86aebe}
 .forum-post h3{margin:8px 0;color:var(--navy)}
 .forum-meta{font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
 .forum-content{white-space:pre-wrap;line-height:1.65;margin:12px 0}
@@ -97,7 +108,7 @@ m.innerHTML=`<section class="formbox"><div class="kicker">AUSTAUSCH & DISKUSSION
 <label>Dein Beitrag *</label><div id="forum-content-editor"></div>
 <button class="primary" type="submit">Beitrag veröffentlichen</button>
 </form><p class="note">Zum Schreiben und Kommentieren musst du angemeldet sein.</p></section>
-<section><div class="heading"><div><h2>Beiträge der Community</h2><p>Neueste Diskussionen zuerst</p></div></div><div id="forum-posts"><div class="gallery-empty">Beiträge werden geladen …</div></div></section>`;
+<section class="forum-list-section"><div class="heading"><div><h2>Beiträge der Community</h2><p>Neueste Diskussionen zuerst</p></div></div><div id="forum-posts"><div class="gallery-empty">Beiträge werden geladen …</div></div></section>`;
 window.forumPostEditor=makeRichEditor(document.getElementById('forum-content-editor'),'Schreibe hier deinen Beitrag …');
 document.getElementById('forum-post-form').addEventListener('submit',submitForumPost);
 await loadForumPosts();
@@ -230,7 +241,7 @@ await loadForumComments(post.id,comments);
 async function loadForumComments(postId,container){
 const {data:comments,error}=await supabaseClient.from('forum_comments').select('id,post_id,user_id,parent_comment_id,content,created_at').eq('post_id',postId).order('created_at',{ascending:true});
 container.innerHTML='';
-const heading=document.createElement('strong');heading.textContent='💬 Diskussion';container.appendChild(heading);
+const heading=document.createElement('strong');heading.textContent='💬 Diskussion · '+(comments?.length||0)+' '+((comments?.length||0)===1?'Beitrag':'Beiträge');container.appendChild(heading);
 if(error){const msg=document.createElement('p');msg.className='note';msg.textContent='Kommentare konnten nicht geladen werden: '+error.message;container.appendChild(msg);return;}
 const all=comments||[];
 const userIds=[...new Set(all.map(c=>c.user_id).filter(Boolean))];
