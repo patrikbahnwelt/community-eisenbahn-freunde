@@ -24,6 +24,12 @@ main{min-width:0}.heading{display:flex;justify-content:space-between;align-items
 .search{width:100%;padding:13px;border:1px solid #dce4e7;border-radius:9px;margin:22px 0 14px;font:inherit}
 .card{padding:17px;margin-bottom:12px;display:grid;grid-template-columns:75px 1fr;gap:14px}.time{font-weight:800;color:#536873}.time small{display:block;color:#9aa6ab;font-size:10px}.tag{display:inline-block;background:#edf3f5;color:#38677b;border-radius:5px;padding:4px 8px;font-size:11px;font-weight:800}.card h3{margin:9px 0 3px;color:var(--navy)}.card p{margin:6px 0;color:#697981;font-size:13px}.note{font-size:12px!important}.sighting-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.sighting-actions button{padding:8px 11px;font-size:12px}.edit-sighting{display:grid;gap:8px;margin-top:12px;padding:12px;background:#f4f6f7;border-radius:9px}.edit-sighting input,.edit-sighting textarea,.edit-sighting select{width:100%;padding:9px;border:1px solid #dce4e7;border-radius:7px;font:inherit}.edit-sighting label{font-size:11px;font-weight:700}.danger{background:#fff0ed;color:#a33d27;border:1px solid #edc8be}
 .formbox{background:white;border:1px solid #e5eaec;border-radius:13px;padding:20px;margin:15px 0}.formbox label{display:block;font-size:12px;font-weight:700;margin:12px 0}.formbox input,.formbox select,.formbox textarea{display:block;width:100%;margin-top:6px;padding:11px;border:1px solid #dce4e7;border-radius:8px;font:inherit}
+.auth-panel{max-width:1120px;margin:18px auto;padding:18px 22px;display:grid;grid-template-columns:1fr 2fr;gap:24px;align-items:center}
+.auth-panel h2{margin:5px 0;font-size:23px}.auth-panel p{margin:4px 0;color:var(--muted);font-size:13px}
+.auth-fields{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}
+.auth-fields label{margin:0}.auth-fields input{margin-top:5px}
+.auth-actions{display:flex;gap:8px;align-items:center}.auth-actions button{white-space:nowrap}
+@media(max-width:700px){.auth-panel{margin:14px 20px;grid-template-columns:1fr;gap:10px}.auth-fields{grid-template-columns:1fr}.auth-actions{flex-wrap:wrap}}
 .notice{background:#fff8f3;border:1px solid #f1d8ca;color:#87503b;padding:12px;border-radius:9px;font-size:12px;line-height:1.5;margin-top:12px}
 .photo-edit-button{margin-top:10px;padding:8px 10px;font-size:12px}.photo-edit-form{display:grid;gap:8px;margin-top:10px;padding:10px;background:#f4f6f7;border-radius:9px}.photo-edit-form label{font-size:11px;font-weight:700}.photo-edit-form input,.photo-edit-form select{width:100%;padding:9px;border:1px solid #dce4e7;border-radius:7px;font:inherit}
 .gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-top:18px}.photo-card{overflow:hidden;border:1px solid #e5eaec;border-radius:12px;background:white}.photo-card img{display:block;width:100%;height:180px;object-fit:cover;background:#edf3f5}.photo-card div{padding:11px}.photo-card h3{margin:0 0 5px;font-size:14px}.photo-card p{margin:4px 0;color:var(--muted);font-size:12px}.gallery-empty{padding:18px;border:1px dashed #cbd6da;border-radius:10px;color:var(--muted);font-size:13px}.gallery-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:700px){.gallery-form-grid{grid-template-columns:1fr}}
@@ -88,6 +94,14 @@ footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 <body>
 <header><div class="brand">🚆 Community für Eisenbahn-Freunde<small>Sehen. Melden. Austauschen.</small></div><nav><span id="auth-status" class="auth-status">Prüfe Anmeldung …</span><button onclick="show('sichtungen')">Sichtungen</button><button onclick="show('forum')">Forum</button><button onclick="show('galerie')">Bildergalerie</button><button id="auth-nav-button" onclick="document.getElementById('anmelden').scrollIntoView({behavior:'smooth'})">Mitgliederbereich</button><button id="logout-button" style="display:none" onclick="abmelden()">Abmelden</button></nav></header>
 <section class="hero"><div><div class="kicker">DIE COMMUNITY FÜR EISENBAHN-BEGEISTERTE</div><h1>Die Eisenbahn im Blick.<br><em>Gemeinsam unterwegs.</em></h1><p>Teile aktuelle Sichtungen, entdecke besondere Züge und tausche dich mit anderen Eisenbahn-Freunden aus.</p><button class="primary" onclick="show('sichtungen');document.getElementById('newform').scrollIntoView({behavior:'smooth'})">＋ Sichtung melden</button></div></section>
+<section id="anmelden" class="formbox auth-panel">
+  <div><div class="kicker">MITGLIEDERBEREICH</div><h2>Schön, dass du dabei bist!</h2><p>Hier kannst du dich anmelden oder ein neues Konto erstellen.</p></div>
+  <div class="auth-fields">
+    <label for="auth-email">E-Mail-Adresse<input id="auth-email" type="email" placeholder="Deine E-Mail-Adresse"></label>
+    <label for="auth-password">Passwort<input id="auth-password" type="password" placeholder="Dein Passwort"></label>
+    <div class="auth-actions"><button class="primary" onclick="anmelden()">Anmelden</button><button onclick="registrieren()">Registrieren</button></div>
+  </div>
+</section>
 <div class="wrap"><aside><div class="kicker">COMMUNITY</div><button class="active" id="nav-sichtungen" onclick="show('sichtungen')">🚆 Sichtungen</button><button id="nav-forum" onclick="show('forum')">💬 Forum</button><button id="nav-galerie" onclick="show('galerie')">📷 Bildergalerie</button><button onclick="alert('Mitgliederprofile folgen mit der Anmeldung.')">👥 Mitglieder</button><div class="notice">Fair miteinander: Unsere Community lebt von Respekt, guten Sichtungen und der Freude an der Eisenbahn.</div></aside>
 <main id="main"><div class="heading"><div><div class="kicker">LIVE AUS DER COMMUNITY</div><h2>Aktuelle Sichtungen</h2><p>Was rollt gerade auf unseren Schienen?</p></div><button class="primary" onclick="document.getElementById('newform').scrollIntoView({behavior:'smooth'})">＋ Neue Sichtung</button></div>
 <input class="search" id="search" placeholder="Sichtungen, Orte oder Zugnummern suchen …" oninput="filterCards()">
@@ -675,14 +689,6 @@ async function registrieren() {
   }
 }
 </script>
-<section id="anmelden" class="formbox">
-  <h2>Mitgliederbereich</h2>
-  <label for="auth-email">E-Mail-Adresse</label>
-  <input id="auth-email" type="email" placeholder="Deine E-Mail-Adresse">
-  <label for="auth-password">Passwort</label>
-  <input id="auth-password" type="password" placeholder="Dein Passwort">
-  <button onclick="anmelden()">Anmelden</button>
-  <button onclick="registrieren()">Registrieren</button>
-</section>
+
 </body></html>
 <!-- Vercel-Neustart -->
