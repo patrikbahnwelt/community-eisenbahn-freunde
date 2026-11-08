@@ -43,6 +43,16 @@ footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 .forum-comment-form textarea{flex:1;min-width:0;padding:10px;border:1px solid #dce4e7;border-radius:8px;font:inherit}
 .forum-comment-form button{white-space:nowrap}
 
+
+.forum-comment-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.forum-comment-actions button,.forum-thread-toggle{padding:6px 9px;font-size:12px;background:#fff;border:1px solid #d5dde0;color:#31566a}
+.forum-comment-branch{margin:10px 0 0 8px}
+.forum-comment-children{margin:9px 0 0 12px;padding-left:12px;border-left:3px solid #dce8ed}
+.forum-comment-children[hidden]{display:none}
+.forum-reply-form{display:block;margin:10px 0 4px}
+.forum-reply-form .rich-editor{margin-bottom:8px}
+.forum-comment-form>div{flex:1;min-width:0}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -218,22 +228,70 @@ await loadForumComments(post.id,comments);
 }
 
 async function loadForumComments(postId,container){
-const {data:comments,error}=await supabaseClient.from('forum_comments').select('id,post_id,user_id,content,created_at').eq('post_id',postId).order('created_at',{ascending:true});
+const {data:comments,error}=await supabaseClient.from('forum_comments').select('id,post_id,user_id,parent_comment_id,content,created_at').eq('post_id',postId).order('created_at',{ascending:true});
 container.innerHTML='';
-const heading=document.createElement('strong');heading.textContent='💬 Kommentare';container.appendChild(heading);
-if(error){const msg=document.createElement('p');msg.className='note';msg.textContent='Kommentare konnten nicht geladen werden.';container.appendChild(msg);return;}
-const userIds=[...new Set((comments||[]).map(c=>c.user_id).filter(Boolean))];
+const heading=document.createElement('strong');heading.textContent='💬 Diskussion';container.appendChild(heading);
+if(error){const msg=document.createElement('p');msg.className='note';msg.textContent='Kommentare konnten nicht geladen werden: '+error.message;container.appendChild(msg);return;}
+const all=comments||[];
+const userIds=[...new Set(all.map(c=>c.user_id).filter(Boolean))];
 let names=new Map();
 if(userIds.length){const {data:profiles}=await supabaseClient.from('profiles').select('id,username').in('id',userIds);for(const p of (profiles||[]))names.set(p.id,p.username||'Mitglied');}
-for(const comment of (comments||[])){
+const {data:{user:viewer}}=await supabaseClient.auth.getUser();
+const byId=new Map(all.map(c=>[c.id,{...c,children:[]}]));
+const roots=[];
+for(const c of byId.values()){
+const parent=c.parent_comment_id?byId.get(c.parent_comment_id):null;
+if(parent)parent.children.push(c);else roots.push(c);
+}
+function makeReplyForm(parentId,mount){
+const form=document.createElement('form');form.className='forum-comment-form forum-reply-form';
+const editorMount=document.createElement('div');const editor=makeRichEditor(editorMount,'Antwort schreiben …');
+const actions=document.createElement('div');actions.className='forum-edit-actions';
+const send=document.createElement('button');send.type='submit';send.className='primary';send.textContent='Antwort senden';
+const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Abbrechen';cancel.addEventListener('click',()=>form.remove());
+actions.append(send,cancel);form.append(editorMount,actions);
+form.addEventListener('submit',async e=>{
+e.preventDefault();
+const {data:{user}}=await supabaseClient.auth.getUser();
+if(!user){alert('Bitte melde dich an, um zu antworten.');return;}
+if(!editor.getText()){alert('Bitte schreibe zuerst eine Antwort.');return;}
+send.disabled=true;
+const {error:insertError}=await supabaseClient.from('forum_comments').insert({post_id:postId,user_id:user.id,parent_comment_id:parentId,content:editor.getHtml()});
+send.disabled=false;
+if(insertError){alert('Antwort konnte nicht gespeichert werden: '+insertError.message);return;}
+await loadForumComments(postId,container);
+});
+mount.appendChild(form);editor.area.focus();
+}
+function renderNode(comment,parent){
 const item=document.createElement('div');item.className='forum-comment';
 const by=document.createElement('div');by.className='forum-meta';by.textContent=(names.get(comment.user_id)||'Mitglied')+' · '+new Date(comment.created_at).toLocaleString('de-DE');
-const textNode=document.createElement('p');textNode.innerHTML=safeForumHtml(comment.content||'');
+const textNode=document.createElement('div');textNode.className='forum-content';textNode.innerHTML=safeForumHtml(comment.content||'');
 item.append(by,textNode);
-const {data:{user:viewer}}=await supabaseClient.auth.getUser();
-if(viewer&&viewer.id===comment.user_id){const edit=document.createElement('button');edit.type='button';edit.textContent='✏️ Bearbeiten';edit.addEventListener('click',()=>showForumCommentEditor(comment,item,postId,container));item.appendChild(edit);}
-container.appendChild(item);
+const actions=document.createElement('div');actions.className='forum-comment-actions';
+if(viewer&&viewer.id===comment.user_id){
+const edit=document.createElement('button');edit.type='button';edit.textContent='✏️ Bearbeiten';edit.addEventListener('click',()=>showForumCommentEditor(comment,item,postId,container));actions.appendChild(edit);
 }
+if(viewer){
+const reply=document.createElement('button');reply.type='button';reply.textContent='↳ Antworten';reply.addEventListener('click',()=>{
+const existing=item.querySelector(':scope > .forum-reply-form');if(existing){existing.remove();return;}
+makeReplyForm(comment.id,item);
+});actions.appendChild(reply);
+}
+if(actions.childNodes.length)item.appendChild(actions);
+if(comment.children.length){
+const branch=document.createElement('div');branch.className='forum-comment-branch';
+const toggle=document.createElement('button');toggle.type='button';toggle.className='forum-thread-toggle';toggle.textContent='＋ '+comment.children.length+' Antwort'+(comment.children.length===1?'':'en')+' anzeigen';
+const children=document.createElement('div');children.className='forum-comment-children';children.hidden=true;
+for(const child of comment.children)children.appendChild(renderNode(child,comment));
+toggle.addEventListener('click',()=>{children.hidden=!children.hidden;toggle.textContent=(children.hidden?'＋ ':'− ')+comment.children.length+' Antwort'+(comment.children.length===1?'':'en')+(children.hidden?' anzeigen':' ausblenden');});
+branch.append(toggle,children);item.appendChild(branch);
+}
+return item;
+}
+if(!all.length){const empty=document.createElement('p');empty.className='note';empty.textContent='Noch keine Kommentare. Starte die Diskussion!';container.appendChild(empty);}
+for(const root of roots)container.appendChild(renderNode(root,null));
+if(viewer){
 const form=document.createElement('form');form.className='forum-comment-form';
 const editorMount=document.createElement('div');const editor=makeRichEditor(editorMount,'Kommentar schreiben …');
 const button=document.createElement('button');button.className='primary';button.type='submit';button.textContent='Senden';
@@ -244,14 +302,16 @@ const {data:{user}}=await supabaseClient.auth.getUser();
 if(!user){alert('Bitte melde dich an, um einen Kommentar zu schreiben.');return;}
 if(!editor.getText()){alert('Bitte schreibe zuerst einen Kommentar.');return;}
 button.disabled=true;
-const {error:insertError}=await supabaseClient.from('forum_comments').insert({post_id:postId,user_id:user.id,content:editor.getHtml()});
+const {error:insertError}=await supabaseClient.from('forum_comments').insert({post_id:postId,user_id:user.id,parent_comment_id:null,content:editor.getHtml()});
 button.disabled=false;
 if(insertError){alert('Kommentar konnte nicht gespeichert werden: '+insertError.message);return;}
 await loadForumComments(postId,container);
 });
 container.appendChild(form);
+}else{
+const note=document.createElement('p');note.className='note';note.textContent='Zum Kommentieren und Antworten musst du angemeldet sein.';container.appendChild(note);
 }
-
+}
 function showForumPostEditor(post,article){
 const old=article.querySelector('.forum-post-edit-form');if(old){old.remove();return;}
 const form=document.createElement('form');form.className='forum-post-edit-form formbox';
