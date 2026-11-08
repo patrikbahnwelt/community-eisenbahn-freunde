@@ -88,12 +88,12 @@ footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 .forum-topic-detail .forum-comments{margin-top:14px}
 @media(max-width:700px){.forum-category-block{padding:8px}.forum-topic-table{font-size:12px}.forum-topic-table th,.forum-topic-table td{padding:7px 8px}}
 .forum-admin-details>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:800;color:#173e55;padding:2px 0}.forum-admin-details>summary::-webkit-details-marker{display:none}.forum-admin-details>summary::after{content:"＋";font-size:20px;color:#c45327}.forum-admin-details[open]>summary::after{content:"−"}.forum-admin-details>summary span{margin-left:auto;font-size:12px;font-weight:500;color:#788890}.forum-admin-details[open]>summary{margin-bottom:14px}
-.auth-panel[hidden]{display:none!important}
+.home-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:20px 0}.home-tile{display:flex;align-items:center;gap:14px;text-align:left;background:#fff;border:1px solid #e2e9ec;border-radius:13px;padding:17px;color:var(--navy);min-height:90px}.home-tile:hover{background:#edf3f5;border-color:#b9cbd3}.home-tile-icon{font-size:30px}.home-tile strong{display:block;font-size:17px}.home-tile small{display:block;color:var(--muted);font-size:12px;font-weight:500;margin-top:3px}.home-columns{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}.home-latest{background:#fff;border:1px solid #e5eaec;border-radius:12px;padding:16px;min-width:0}.home-latest h3{margin:0 0 12px;color:var(--navy)}.home-latest-item{padding:10px 0;border-top:1px solid #edf0f2;font-size:13px}.home-latest-item:first-of-type{border-top:0}.home-latest-item strong{display:block;color:#24536a}.home-latest-item small{color:var(--muted)}.home-empty{color:var(--muted);font-size:13px;padding:8px 0}@media(max-width:700px){.home-tiles,.home-columns{grid-template-columns:1fr}.home-tile{min-height:76px}}\n.auth-panel[hidden]{display:none!important}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<header><div class="brand">🚆 Community für Eisenbahn-Freunde<small>Sehen. Melden. Austauschen.</small></div><nav><span id="auth-status" class="auth-status">Prüfe Anmeldung …</span><button onclick="show('sichtungen')">Sichtungen</button><button onclick="show('forum')">Forum</button><button onclick="show('galerie')">Bildergalerie</button><button id="auth-nav-button" onclick="document.getElementById('anmelden').scrollIntoView({behavior:'smooth'})">Mitgliederbereich</button><button id="logout-button" style="display:none" onclick="abmelden()">Abmelden</button></nav></header>
+<header><div class="brand">🚆 Community für Eisenbahn-Freunde<small>Sehen. Melden. Austauschen.</small></div><nav><span id="auth-status" class="auth-status">Prüfe Anmeldung …</span><button onclick="show('start')">Startseite</button><button onclick="show('sichtungen')">Sichtungen</button><button onclick="show('forum')">Forum</button><button onclick="show('galerie')">Bildergalerie</button><button id="auth-nav-button" onclick="document.getElementById('anmelden').scrollIntoView({behavior:'smooth'})">Mitgliederbereich</button><button id="logout-button" style="display:none" onclick="abmelden()">Abmelden</button></nav></header>
 <section id="anmelden" class="formbox auth-panel">
   <div><div class="kicker">MITGLIEDERBEREICH</div><h2>Schön, dass du dabei bist!</h2><p>Hier kannst du dich anmelden oder ein neues Konto erstellen.</p></div>
   <div class="auth-fields">
@@ -103,7 +103,7 @@ footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
   </div>
 </section>
 <section class="hero"><div><div class="kicker">DIE COMMUNITY FÜR EISENBAHN-BEGEISTERTE</div><h1>Die Eisenbahn im Blick.<br><em>Gemeinsam unterwegs.</em></h1><p>Teile aktuelle Sichtungen, entdecke besondere Züge und tausche dich mit anderen Eisenbahn-Freunden aus.</p><button class="primary" onclick="show('sichtungen');document.getElementById('newform').scrollIntoView({behavior:'smooth'})">＋ Sichtung melden</button></div></section>
-<div class="wrap"><aside><div class="kicker">COMMUNITY</div><button class="active" id="nav-sichtungen" onclick="show('sichtungen')">🚆 Sichtungen</button><button id="nav-forum" onclick="show('forum')">💬 Forum</button><button id="nav-galerie" onclick="show('galerie')">📷 Bildergalerie</button><button onclick="alert('Mitgliederprofile folgen mit der Anmeldung.')">👥 Mitglieder</button><div class="notice">Fair miteinander: Unsere Community lebt von Respekt, guten Sichtungen und der Freude an der Eisenbahn.</div></aside>
+<div class="wrap"><aside><div class="kicker">COMMUNITY</div><button class="active" id="nav-start" onclick="show('start')">🏠 Startseite</button><button id="nav-sichtungen" onclick="show('sichtungen')">🚆 Sichtungen</button><button id="nav-forum" onclick="show('forum')">💬 Forum</button><button id="nav-galerie" onclick="show('galerie')">📷 Bildergalerie</button><button onclick="alert('Mitgliederprofile folgen mit der Anmeldung.')">👥 Mitglieder</button><div class="notice">Fair miteinander: Unsere Community lebt von Respekt, guten Sichtungen und der Freude an der Eisenbahn.</div></aside>
 <main id="main"><div class="heading"><div><div class="kicker">LIVE AUS DER COMMUNITY</div><h2>Aktuelle Sichtungen</h2><p>Was rollt gerade auf unseren Schienen?</p></div><button class="primary" onclick="document.getElementById('newform').scrollIntoView({behavior:'smooth'})">＋ Neue Sichtung</button></div>
 <input class="search" id="search" placeholder="Sichtungen, Orte oder Zugnummern suchen …" oninput="filterCards()">
 <div id="cards">
@@ -126,13 +126,45 @@ updateAuthStatus();
 document.querySelectorAll('aside button').forEach(b=>b.classList.remove('active'));
 let n=document.getElementById('nav-'+page);if(n)n.classList.add('active');
 let m=document.getElementById('main');m.style.display='block';
-if(page==='sichtungen'){m.innerHTML=window.sightingsMarkup||m.innerHTML;loadSightings();return}
+if(page==='start'){renderHome();return}\nif(page==='sichtungen'){m.innerHTML=window.sightingsMarkup||m.innerHTML;loadSightings();return}
 if(page==='galerie'){renderGallery();return}
 if(page==='forum'){renderForum();return}
 
 m.innerHTML='<section class="formbox"><h2>Bereich</h2></section>';
 }
 
+
+
+async function renderHome(){
+const m=document.getElementById('main');
+m.innerHTML=`<section><div class="heading"><div><div class="kicker">SCHÖN, DASS DU DA BIST</div><h2>Willkommen in der Community!</h2><p>Hier treffen sich Eisenbahn-Freunde zum Entdecken, Melden und Austauschen.</p></div></div>
+<div class="home-tiles">
+<button class="home-tile" onclick="show('sichtungen')"><span class="home-tile-icon">🚆</span><span><strong>Sichtungen</strong><small>Aktuelle Züge und Beobachtungen entdecken</small></span></button>
+<button class="home-tile" onclick="show('forum')"><span class="home-tile-icon">💬</span><span><strong>Forum</strong><small>Fragen stellen und mitdiskutieren</small></span></button>
+<button class="home-tile" onclick="show('galerie')"><span class="home-tile-icon">📸</span><span><strong>Bildergalerie</strong><small>Eisenbahnfotos ansehen und teilen</small></span></button>
+<button class="home-tile" onclick="document.getElementById('anmelden').scrollIntoView({behavior:'smooth'})"><span class="home-tile-icon">👥</span><span><strong>Mitgliederbereich</strong><small>Anmelden und Teil der Community werden</small></span></button>
+</div></section>
+<div class="home-columns"><section class="home-latest"><h3>🚆 Die letzten 5 Sichtungen</h3><div id="home-sightings" class="home-empty">Wird geladen …</div></section><section class="home-latest"><h3>💬 Neueste 5 Forenbeiträge</h3><div id="home-posts" class="home-empty">Wird geladen …</div></section></div>`;
+const sightingBox=document.getElementById('home-sightings');
+const postBox=document.getElementById('home-posts');
+const [sightingsResult,postsResult]=await Promise.all([
+supabaseClient.from('sightings').select('station,train_type,train_number,direction,created_at').order('created_at',{ascending:false}).limit(5),
+supabaseClient.from('forum_posts').select('title,category,created_at').order('created_at',{ascending:false}).limit(5)
+]);
+function addItems(box,items,kind){
+box.innerHTML='';
+if(!items||!items.length){box.textContent='Noch keine Einträge vorhanden.';box.className='home-empty';return;}
+for(const item of items){
+const row=document.createElement('div');row.className='home-latest-item';
+const strong=document.createElement('strong');strong.textContent=kind==='sighting'?(item.station||'Unbekannter Ort'):(item.title||'Beitrag ohne Titel');
+const small=document.createElement('small');
+small.textContent=kind==='sighting'?[item.train_type,item.train_number,item.direction?'→ '+item.direction:''].filter(Boolean).join(' · '):[item.category,new Date(item.created_at).toLocaleDateString('de-DE')].filter(Boolean).join(' · ');
+row.append(strong,small);box.appendChild(row);
+}
+}
+if(sightingsResult.error){sightingBox.textContent='Sichtungen konnten gerade nicht geladen werden.';}else{addItems(sightingBox,sightingsResult.data,'sighting');}
+if(postsResult.error){postBox.textContent='Forenbeiträge konnten gerade nicht geladen werden.';}else{addItems(postBox,postsResult.data,'post');}
+}
 
 async function renderAdmin(){
  const m=document.getElementById('main');
@@ -655,7 +687,7 @@ catch(error){alert('Beim Hochladen ist ein Fehler aufgetreten: '+error.message);
 finally{submit.disabled=false;submit.textContent='Fotos hochladen';}
 }
 
-loadSightings();
+renderHome();
 async function anmelden() {
   const email = document.getElementById('auth-email').value;
   const passwort = document.getElementById('auth-password').value;
