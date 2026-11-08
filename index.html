@@ -107,11 +107,37 @@ footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 .sighting-discussion{padding:7px 9px;margin:3px 0 1px}.sighting-comments{gap:5px}.sighting-comment{padding:4px 7px}.sighting-comment-content{font-size:12px}.sighting-comment-children{margin:5px 0 0 12px;padding-left:7px;gap:5px}
 .sighting-row:nth-child(even){background:#f1f3f4}.sighting-row:not(.sighting-head):hover{background:#eaf0f4}
 
+
+/* Geräteabhängiger Hell-/Dunkelmodus */
+.theme-control{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;font-weight:700}
+.theme-control select{padding:7px 8px;border:1px solid #d5dfe3;border-radius:8px;background:#fff;color:#203442;font:inherit;max-width:132px}
+@media(max-width:760px){header{align-items:flex-start;flex-direction:column}.theme-control{order:-1}}
+@media(prefers-color-scheme:dark){
+ body:not([data-theme="light"]){background:#202a32;color:#e7edf0}
+ body:not([data-theme="light"]) header,body:not([data-theme="light"]) aside,body:not([data-theme="light"]) .panel,body:not([data-theme="light"]) .card,body:not([data-theme="light"]) .formbox,body:not([data-theme="light"]) .home-tile,body:not([data-theme="light"]) .auth-panel{background:#293640;border-color:#3c4b55;color:#e7edf0}
+}
+body[data-theme="dark"]{background:#202a32;color:#e7edf0}
+body[data-theme="dark"] header,body[data-theme="dark"] aside,body[data-theme="dark"] .panel,body[data-theme="dark"] .card,body[data-theme="dark"] .formbox,body[data-theme="dark"] .home-tile,body[data-theme="dark"] .auth-panel{background:#293640;border-color:#3c4b55;color:#e7edf0}
+body[data-theme="dark"] header{border-bottom-color:#3c4b55}
+body[data-theme="dark"] .brand,body[data-theme="dark"] h1,body[data-theme="dark"] h2,body[data-theme="dark"] h3,body[data-theme="dark"] .card h3{color:#e7edf0}
+body[data-theme="dark"] p,body[data-theme="dark"] small,body[data-theme="dark"] .heading p,body[data-theme="dark"] .muted{color:#b4c1c8}
+body[data-theme="dark"] aside button,body[data-theme="dark"] nav button{background:#293640;color:#dce6eb}
+body[data-theme="dark"] aside button.active{background:#344b58;color:#fff}
+body[data-theme="dark"] input,body[data-theme="dark"] textarea,body[data-theme="dark"] select,body[data-theme="dark"] .theme-control select{background:#1d272e!important;color:#e7edf0!important;border-color:#4a5a64!important}
+body[data-theme="dark"] .search,body[data-theme="dark"] .edit-sighting,body[data-theme="dark"] .photo-edit-form{background:#25323b;border-color:#43535d;color:#e7edf0}
+body[data-theme="dark"] .sighting-row,body[data-theme="dark"] .sighting-row:nth-child(even){background:#293640;color:#e7edf0}
+body[data-theme="dark"] .sighting-row:hover{background:#344550}
+body[data-theme="dark"] .sighting-discussion,body[data-theme="dark"] .sighting-comment{background:#25323b;color:#e7edf0}
+body[data-theme="dark"] .sighting-comment-content,body[data-theme="dark"] .forum-post,body[data-theme="dark"] .forum-comment{color:#e7edf0}
+body[data-theme="dark"] a{color:#8fc5e8}
+body[data-theme="dark"] .notice{background:#3a3029;border-color:#655044;color:#f0c7a8}
+body[data-theme="dark"] footer{color:#aebbc2}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<header><div class="brand">🚆 Community für Eisenbahn-Freunde<small>Sehen. Melden. Austauschen.</small></div><nav><span id="auth-status" class="auth-status">Prüfe Anmeldung …</span><button onclick="show('start')">Startseite</button><button onclick="show('sichtungen')">Sichtungen</button><button onclick="show('forum')">Forum</button><button onclick="show('galerie')">Bildergalerie</button><button id="auth-nav-button" onclick="document.getElementById('anmelden').scrollIntoView({behavior:'smooth'})">Mitgliederbereich</button><button id="logout-button" style="display:none" onclick="abmelden()">Abmelden</button></nav></header>
+<header><div class="brand">🚆 Community für Eisenbahn-Freunde<small>Sehen. Melden. Austauschen.</small></div><nav><label class="theme-control" for="theme-mode" aria-label="Darstellung wählen">Darstellung <select id="theme-mode" onchange="setThemeMode(this.value)"><option value="auto">Automatisch</option><option value="light">Hell</option><option value="dark">Dunkel</option></select></label><span id="auth-status" class="auth-status">Prüfe Anmeldung …</span><button onclick="show('start')">Startseite</button><button onclick="show('sichtungen')">Sichtungen</button><button onclick="show('forum')">Forum</button><button onclick="show('galerie')">Bildergalerie</button><button id="auth-nav-button" onclick="document.getElementById('anmelden').scrollIntoView({behavior:'smooth'})">Mitgliederbereich</button><button id="logout-button" style="display:none" onclick="abmelden()">Abmelden</button></nav></header>
 <section id="anmelden" class="formbox auth-panel">
   <div><div class="kicker">MITGLIEDERBEREICH</div><h2>Schön, dass du dabei bist!</h2><p>Hier kannst du dich anmelden oder ein neues Konto erstellen.</p></div>
   <div class="auth-fields">
@@ -131,6 +157,19 @@ footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 <p><button class="primary">Sichtung veröffentlichen</button></p></form></section></main></div>
 <footer>© 2026 Community für Eisenbahn-Freunde · Ein Projekt von Patriks Fotowelten</footer>
 <script>
+function getThemeMode(){try{return localStorage.getItem('community-theme-mode')||'auto';}catch(e){return 'auto';}}
+function applyThemeMode(mode){
+ const effective=mode==='auto'?(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):mode;
+ document.body.dataset.theme=effective;
+ const picker=document.getElementById('theme-mode');if(picker)picker.value=mode;
+}
+function setThemeMode(mode){
+ if(!['auto','light','dark'].includes(mode))mode='auto';
+ try{localStorage.setItem('community-theme-mode',mode);}catch(e){}
+ applyThemeMode(mode);
+}
+applyThemeMode(getThemeMode());
+if(window.matchMedia){const themeQuery=window.matchMedia('(prefers-color-scheme: dark)');themeQuery.addEventListener?.('change',()=>{if(getThemeMode()==='auto')applyThemeMode('auto');});}
 const supabaseUrl = 'https://fhiijlzqfqddiwvsitow.supabase.co';
 const supabaseKey = 'sb_publishable_SXl83RfW6FRMBQgrO7Fqjg_vyLVad6_';
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
