@@ -126,7 +126,8 @@ updateAuthStatus();
 document.querySelectorAll('aside button').forEach(b=>b.classList.remove('active'));
 let n=document.getElementById('nav-'+page);if(n)n.classList.add('active');
 let m=document.getElementById('main');m.style.display='block';
-if(page==='start'){renderHome();return}\nif(page==='sichtungen'){m.innerHTML=window.sightingsMarkup||m.innerHTML;loadSightings();return}
+if(page==='start'){renderHome();return}
+if(page==='sichtungen'){m.innerHTML=window.sightingsMarkup||m.innerHTML;loadSightings();return}
 if(page==='galerie'){renderGallery();return}
 if(page==='forum'){renderForum();return}
 
