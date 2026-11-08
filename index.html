@@ -99,6 +99,14 @@ footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 @media(max-width:850px){.sighting-row{grid-template-columns:88px 45px minmax(100px,1fr) minmax(160px,1.5fr);}.sighting-author{grid-column:3/-1}.sighting-head .sighting-author{display:none}}
 @media(max-width:600px){.sighting-toolbar{flex-direction:column;align-items:stretch}.sighting-row{grid-template-columns:75px 40px minmax(0,1fr);gap:6px;padding:9px}.sighting-row .sighting-description{grid-column:1/-1}.sighting-row .sighting-author{grid-column:1/-1}.sighting-head{display:none}}
 
+
+/* Kompakte Live-Sichtungsliste */
+.sighting-row{grid-template-columns:112px 48px minmax(135px,175px) minmax(260px,1fr) minmax(125px,auto);gap:7px;padding:6px 10px;font-size:12px;line-height:1.3}
+.sighting-time{font-size:11px}.sighting-description strong{font-size:12px;font-weight:700}.sighting-description small{margin-top:2px;font-size:11px}
+.sighting-author{font-size:11px}.sighting-expand{padding:2px 5px;font-size:11px}.sighting-replies-toggle{display:block;margin-top:3px;padding-left:0;font-weight:700}
+.sighting-discussion{padding:7px 9px;margin:3px 0 1px}.sighting-comments{gap:5px}.sighting-comment{padding:4px 7px}.sighting-comment-content{font-size:12px}.sighting-comment-children{margin:5px 0 0 12px;padding-left:7px;gap:5px}
+.sighting-row:nth-child(even){background:#f1f3f4}.sighting-row:not(.sighting-head):hover{background:#eaf0f4}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -629,10 +637,10 @@ async function loadSightings(){
   const desc=document.createElement('div');desc.className='sighting-description';const strong=document.createElement('strong');strong.textContent=item.note||[item.train_type,item.train_number].filter(Boolean).join(' · ')||'Sichtungsmeldung';const detail=document.createElement('small');detail.textContent=item.direction?'→ '+item.direction:'';desc.append(strong,detail);
   const replies=commentsBySighting.get(item.id)||[],actions=document.createElement('span');actions.className='sighting-author';actions.textContent=namesByUser.get(item.user_id)||'Mitglied';
   if(viewer?.id===item.user_id){const edit=document.createElement('button');edit.type='button';edit.className='sighting-expand';edit.textContent='Bearbeiten';edit.addEventListener('click',()=>showSightingEditor(item,desc));actions.appendChild(edit);const del=document.createElement('button');del.type='button';del.className='sighting-expand';del.textContent='Löschen';del.addEventListener('click',()=>deleteSighting(item.id));actions.appendChild(del);}
-  row.append(time,bst,station,desc,actions);
   const discussion=document.createElement('section');discussion.className='sighting-discussion';discussion.hidden=true;const commentTree=document.createElement('div');commentTree.className='sighting-comments';discussion.appendChild(commentTree);
   if(replies.length)renderSightingCommentTree(replies,null,commentTree,item.id,()=>loadSightings());
-  if(replies.length||viewer){const toggle=document.createElement('button');toggle.type='button';toggle.className='sighting-expand';toggle.style.gridColumn='1/-1';toggle.style.justifySelf='start';toggle.textContent=replies.length?'💬 '+replies.length+' Antworten ▾':'↳ Antworten';toggle.addEventListener('click',()=>{discussion.hidden=!discussion.hidden;toggle.textContent=replies.length?'💬 '+replies.length+' Antworten '+(discussion.hidden?'▾':'▴'):(discussion.hidden?'↳ Antworten':'↳ Antworten schließen');});row.appendChild(toggle);const replyBtn=document.createElement('button');replyBtn.type='button';replyBtn.className='sighting-expand';replyBtn.textContent='Antworten';replyBtn.addEventListener('click',()=>showSightingReply(item.id,null,discussion,()=>loadSightings()));discussion.appendChild(replyBtn);row.appendChild(discussion);}
+  if(replies.length||viewer){const toggle=document.createElement('button');toggle.type='button';toggle.className='sighting-expand sighting-replies-toggle';toggle.textContent=replies.length?'💬 '+replies.length+' Antworten':'💬 Antworten';toggle.addEventListener('click',()=>{discussion.hidden=!discussion.hidden;toggle.textContent=(replies.length?'💬 '+replies.length+' Antworten':'💬 Antworten')+(discussion.hidden?' ▾':' ▴');});desc.appendChild(toggle);const replyBtn=document.createElement('button');replyBtn.type='button';replyBtn.className='sighting-expand';replyBtn.textContent='Antworten';replyBtn.addEventListener('click',()=>showSightingReply(item.id,null,discussion,()=>loadSightings()));discussion.appendChild(replyBtn);}
+  row.append(time,bst,station,desc,actions);if(replies.length||viewer)row.appendChild(discussion);
   cards.appendChild(row);
  }
 }
