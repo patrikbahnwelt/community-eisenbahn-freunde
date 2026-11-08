@@ -17,7 +17,7 @@ nav button{background:white;color:#40545f}.primary{background:var(--rust);color:
 .hero{position:relative;isolation:isolate;min-height:430px;background:linear-gradient(90deg,rgba(8,25,37,.78) 0%,rgba(8,25,37,.58) 30%,rgba(8,25,37,.16) 52%,rgba(8,25,37,0) 68%),url('https://raw.githubusercontent.com/patrikbahnwelt/community-eisenbahn-freunde/main/community-titelbild.jpg') center 58%/cover no-repeat;color:white;padding:160px max(7vw,22px) 48px;display:block;align-content:center}.hero>div:first-child{position:relative;z-index:1;max-width:760px}
 .kicker{color:#ffd28a;font-size:11px;letter-spacing:1.5px;font-weight:800}.hero h1{font-size:clamp(32px,5vw,52px);line-height:1.1;margin:14px 0}.hero h1 em{color:#ffd28a;font-style:normal}.hero p{color:#d0dce1;line-height:1.7;max-width:560px}
 .train-art{display:none}
-.wrap{max-width:1120px;margin:30px auto;padding:0 20px;display:grid;grid-template-columns:210px 1fr;gap:28px}
+.wrap{max-width:1440px;margin:30px auto;padding:0 20px;display:grid;grid-template-columns:190px minmax(0,1fr);gap:24px}
 aside,.panel,.card{background:white;border:1px solid #e5eaec;border-radius:13px}
 aside{padding:15px;height:max-content}aside button{width:100%;text-align:left;background:white;color:#53656e;margin:3px 0}aside button.active{background:#edf3f5;color:var(--blue)}
 main{min-width:0}.heading{display:flex;justify-content:space-between;align-items:end;gap:15px;flex-wrap:wrap}.heading h2{margin:5px 0;font-size:27px}.heading p{margin:0;color:var(--muted);font-size:13px}
@@ -92,7 +92,7 @@ footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 
 .sighting-toolbar{display:flex;gap:10px;align-items:center;margin:16px 0 10px}.sighting-toolbar .search{flex:1;margin:0;min-width:180px}.sighting-toolbar select{padding:12px;border:1px solid #dce4e7;border-radius:8px;background:#fff;font:inherit;color:var(--ink)}
 .sighting-list{border:1px solid #d6e0e5;border-radius:11px;overflow:hidden;background:#fff;margin-bottom:18px}
-.sighting-row{display:grid;grid-template-columns:125px 58px minmax(130px,190px) minmax(220px,1fr) minmax(115px,auto);gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid #e5eaec;font-size:13px;line-height:1.35}
+.sighting-row{display:grid;grid-template-columns:112px 48px minmax(145px,190px) minmax(260px,1fr) minmax(140px,auto);gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid #e5eaec;font-size:13px;line-height:1.35}
 .sighting-row:nth-child(even){background:#f0f2f3}.sighting-row:last-child{border-bottom:0}.sighting-head{background:#244f91!important;color:#fff;font-weight:800;font-size:12px}
 .sighting-time{white-space:nowrap;color:#536873;font-variant-numeric:tabular-nums}.sighting-code{font-weight:800;color:#244f68;text-align:center}.sighting-station{color:#174b9a;font-weight:600}.sighting-description{min-width:0}.sighting-description strong{display:block;color:#203442}.sighting-description small{display:block;color:#788890;margin-top:3px}.sighting-author{white-space:nowrap;color:#174b9a;font-size:12px}.sighting-expand{border:0;background:transparent;color:#244f68;padding:3px 6px;font-size:12px;cursor:pointer}
 .sighting-discussion{grid-column:1/-1;background:#eaf0f6;border-radius:8px;padding:10px 12px;margin:4px 0 2px}.sighting-comments{display:grid;gap:8px}.sighting-comment{border-left:3px solid #9ab5c5;padding:5px 8px;background:rgba(255,255,255,.65);border-radius:0 7px 7px 0}.sighting-comment-meta{font-size:11px;color:#617580;margin-bottom:3px}.sighting-comment-content{font-size:13px;white-space:pre-wrap}.sighting-comment-children{margin:7px 0 0 17px;padding-left:9px;border-left:2px solid #c5d6e0;display:grid;gap:7px}.sighting-comment-actions{margin-top:4px}.sighting-comment-actions button{font-size:11px;padding:4px 8px;background:#fff;border:1px solid #cbd9e0}.sighting-reply-form{display:grid;gap:6px;margin-top:8px}.sighting-reply-form textarea{width:100%;min-height:55px;padding:8px;border:1px solid #cbd9e0;border-radius:7px;font:inherit}.station-suggestions{display:grid;gap:4px;margin-top:5px}.station-suggestions button{text-align:left;background:#f0f5f7;border:1px solid #dce7eb;padding:8px 10px;border-radius:7px}.field-hint{display:block;color:#788890;font-size:11px;margin-top:5px}
@@ -119,8 +119,7 @@ footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 <div id="cards" class="sighting-list"><div class="notice">Sichtungen werden geladen …</div></div>
 <section class="formbox" id="newform"><div class="kicker">NEUE MELDUNG</div><h3>Sichtung eintragen</h3><form onsubmit="addSighting(event)">
 <label>Betriebsstelle suchen *<input id="station" required autocomplete="off" placeholder="Kürzel oder Bahnhof eingeben …" oninput="searchBetriebsstellen()"><input type="hidden" id="bst-code"><div id="station-suggestions" class="station-suggestions"></div><small id="station-selected" class="field-hint">Bitte eine Betriebsstelle aus den offiziellen Treffern auswählen.</small></label>
-<label>Zugart *<select id="train" required><option value="">Bitte auswählen</option><option>ICE / IC</option><option>Regionalverkehr</option><option>Güterzug</option><option>S-Bahn</option><option>Sonstiger Zug</option></select></label>
-<label>Zugnummer<input id="number" placeholder="z. B. ICE 847"></label><label>Fahrtrichtung<input id="direction" placeholder="z. B. Richtung Berlin"></label><label>Bemerkung<textarea id="note" rows="3" placeholder="Weitere Informationen (optional)"></textarea></label>
+<label>Sichtungsmeldung *<textarea id="note" rows="4" required placeholder="Beschreibe deine Sichtung, z. B. ICE 847 Richtung Berlin, außerplanmäßiger Halt auf Gleis 9 …"></textarea></label><label>Fahrtrichtung (optional)<input id="direction" placeholder="z. B. Richtung Berlin Hbf"></label>
 <p><button class="primary">Sichtung veröffentlichen</button></p></form></section></main></div>
 <footer>© 2026 Community für Eisenbahn-Freunde · Ein Projekt von Patriks Fotowelten</footer>
 <script>
@@ -596,9 +595,9 @@ async function searchBetriebsstellen(){
 async function addSighting(e){
  e.preventDefault();const {data:{user},error:userError}=await supabaseClient.auth.getUser();
  if(userError||!user){alert('Bitte melde dich zuerst an, um eine Sichtung zu speichern.');document.getElementById('anmelden')?.scrollIntoView({behavior:'smooth'});return;}
- const station=document.getElementById('station').value.trim(),bstCode=document.getElementById('bst-code').value,train=document.getElementById('train').value,num=document.getElementById('number').value.trim(),dir=document.getElementById('direction').value.trim(),note=document.getElementById('note').value.trim();
+ const station=document.getElementById('station').value.trim(),bstCode=document.getElementById('bst-code').value,dir=document.getElementById('direction').value.trim(),note=document.getElementById('note').value.trim();
  if(!bstCode){alert('Bitte wähle die Betriebsstelle aus den offiziellen Suchtreffern aus.');return;}
- const {error}=await supabaseClient.from('sightings').insert({user_id:user.id,station,bst_code:bstCode,train_type:train,train_number:num||null,direction:dir||null,note:note||null});
+ const {error}=await supabaseClient.from('sightings').insert({user_id:user.id,station,bst_code:bstCode,train_type:null,train_number:null,direction:dir||null,note});
  if(error){alert('Die Sichtung konnte nicht gespeichert werden: '+error.message);return;}
  e.target.reset();document.getElementById('station-selected').textContent='Bitte eine Betriebsstelle aus den offiziellen Treffern auswählen.';await loadSightings();alert('Deine Sichtung wurde veröffentlicht. Vielen Dank!');
 }
@@ -622,7 +621,7 @@ async function loadSightings(){
   const d=new Date(item.created_at),time=document.createElement('span');time.className='sighting-time';time.textContent=d.toLocaleDateString('de-DE')+', '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
   const bst=document.createElement('span');bst.className='sighting-code';bst.textContent=item.bst_code||'–';
   const station=document.createElement('span');station.className='sighting-station';station.textContent=item.station;
-  const desc=document.createElement('div');desc.className='sighting-description';const strong=document.createElement('strong');strong.textContent=[item.train_type,item.train_number].filter(Boolean).join(' · ')||'Zugmeldung';const detail=document.createElement('small');detail.textContent=[item.direction?'→ '+item.direction:'',item.note||''].filter(Boolean).join(' · ');desc.append(strong,detail);
+  const desc=document.createElement('div');desc.className='sighting-description';const strong=document.createElement('strong');strong.textContent=item.note||[item.train_type,item.train_number].filter(Boolean).join(' · ')||'Sichtungsmeldung';const detail=document.createElement('small');detail.textContent=item.direction?'→ '+item.direction:'';desc.append(strong,detail);
   const replies=commentsBySighting.get(item.id)||[],actions=document.createElement('span');actions.className='sighting-author';actions.textContent=namesByUser.get(item.user_id)||'Mitglied';
   if(viewer?.id===item.user_id){const edit=document.createElement('button');edit.type='button';edit.className='sighting-expand';edit.textContent='Bearbeiten';edit.addEventListener('click',()=>showSightingEditor(item,desc));actions.appendChild(edit);const del=document.createElement('button');del.type='button';del.className='sighting-expand';del.textContent='Löschen';del.addEventListener('click',()=>deleteSighting(item.id));actions.appendChild(del);}
   row.append(time,bst,station,desc,actions);
@@ -648,10 +647,8 @@ const el=document.createElement(type==='textarea'?'textarea':'input');
 if(type==='input')el.type='text';el.value=value||'';label.appendChild(el);form.appendChild(label);return el;
 }
 const station=field('Betriebsstelle / Ort',s.station);
-const train=field('Zugart',s.train_type);
-const number=field('Zugnummer',s.train_number);
-const direction=field('Fahrtrichtung',s.direction);
-const note=field('Bemerkung','note'=== 'note'?s.note:'','textarea');
+const direction=field('Fahrtrichtung (optional)',s.direction);
+const note=field('Sichtungsmeldung',s.note||[s.train_type,s.train_number].filter(Boolean).join(' · '),'textarea');
 const controls=document.createElement('div');controls.className='sighting-actions';
 const save=document.createElement('button');save.type='submit';save.className='primary';save.textContent='Änderungen speichern';
 const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Abbrechen';cancel.addEventListener('click',()=>form.remove());
@@ -659,7 +656,7 @@ controls.append(save,cancel);form.appendChild(controls);
 form.addEventListener('submit',async e=>{
 e.preventDefault();const {data:{user}}=await supabaseClient.auth.getUser();
 if(!user){alert('Bitte melde dich erneut an.');return;}
-const {error}=await supabaseClient.from('sightings').update({station:station.value.trim(),train_type:train.value.trim(),train_number:number.value.trim()||null,direction:direction.value.trim()||null,note:note.value.trim()||null}).eq('id',s.id).eq('user_id',user.id);
+const {error}=await supabaseClient.from('sightings').update({station:station.value.trim(),direction:direction.value.trim()||null,note:note.value.trim()}).eq('id',s.id).eq('user_id',user.id);
 if(error){alert('Änderung fehlgeschlagen: '+error.message);return;}
 await loadSightings();alert('Deine Sichtung wurde aktualisiert.');
 });
