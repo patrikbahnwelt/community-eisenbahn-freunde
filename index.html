@@ -502,7 +502,7 @@ async function loadForumPosts(){
    const content=document.createElement('div');content.className='forum-content';content.innerHTML=safeForumHtml(post.content||'');
    const comments=document.createElement('div');comments.className='forum-comments';comments.id='forum-comments-'+post.id;
    article.append(meta,content);
-   if(viewer&&viewer.id===post.user_id){const edit=document.createElement('button');edit.type='button';edit.textContent='✏️ Beitrag bearbeiten';edit.addEventListener('click',()=>{try{showForumPostEditor(post,article);}catch(error){console.error('Fehler beim Öffnen der Beitragsbearbeitung:',error);alert('Die Beitragsbearbeitung konnte nicht geöffnet werden: '+(error?.message||String(error)));}});article.appendChild(edit);}
+   if(viewer&&viewer.id===post.user_id){const edit=document.createElement('button');edit.type='button';edit.textContent='✏️ Beitrag bearbeiten';edit.addEventListener('click',()=>{try{showForumPostEditor(post,article);}catch(error){console.error('Fehler beim Öffnen der Beitragsbearbeitung:',error);alert('Die Beitragsbearbeitung konnte nicht geöffnet werden: '+(error?.message||String(error)));}});article.appendChild(edit);const del=document.createElement('button');del.type='button';del.textContent='🗑️ Beitrag löschen';del.className='forum-delete-button';del.addEventListener('click',()=>deleteForumPost(post.id));article.appendChild(del);}
    article.appendChild(comments);detailCell.appendChild(article);detailRow.appendChild(detailCell);
    let commentsLoaded=false;
    const toggle=async()=>{detailRow.hidden=!detailRow.hidden;open.setAttribute('aria-expanded',String(!detailRow.hidden));open.textContent=(detailRow.hidden?'▸ ':'▾ ')+(post.title||'Ohne Titel');if(!detailRow.hidden&&!commentsLoaded){await loadForumComments(post.id,comments);commentsLoaded=true;}};
@@ -618,6 +618,15 @@ const save=document.createElement('button');save.type='submit';save.className='p
 const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Abbrechen';cancel.addEventListener('click',()=>form.remove());
 const actions=document.createElement('div');actions.className='forum-edit-actions';actions.append(save,cancel);form.append(mount,actions);item.appendChild(form);
 form.addEventListener('submit',async e=>{e.preventDefault();if(!editor.getText()){alert('Der Kommentar darf nicht leer sein.');return;}const {data:{user}}=await supabaseClient.auth.getUser();if(!user||user.id!==comment.user_id){alert('Du kannst nur deine eigenen Kommentare bearbeiten.');return;}save.disabled=true;const {error}=await supabaseClient.from('forum_comments').update({content:editor.getHtml()}).eq('id',comment.id).eq('user_id',user.id);save.disabled=false;if(error){alert('Kommentar konnte nicht bearbeitet werden: '+error.message);return;}await loadForumComments(postId,container);alert('Dein Kommentar wurde aktualisiert.');});
+}
+
+async function deleteForumPost(postId){
+ if(!confirm('Möchtest du diesen Forumsbeitrag wirklich löschen? Zugehörige Antworten werden dabei ebenfalls entfernt, sofern die Datenbankverknüpfung dies vorsieht.'))return;
+ const {data:{user}}=await supabaseClient.auth.getUser();
+ if(!user){alert('Bitte melde dich zuerst an.');return;}
+ const {error}=await supabaseClient.from('forum_posts').delete().eq('id',postId).eq('user_id',user.id);
+ if(error){alert('Der Forumsbeitrag konnte nicht gelöscht werden: '+error.message);return;}
+ await loadForumPosts();
 }
 
 async function submitForumPost(e){
