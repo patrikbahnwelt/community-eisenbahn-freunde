@@ -150,6 +150,11 @@ body[data-theme="dark"] .sighting-comment-meta,body[data-theme="dark"] .sighting
  body:not([data-theme="light"]) .sighting-comment-meta,body:not([data-theme="light"]) .sighting-comment-content,body:not([data-theme="light"]) .sighting-comment-actions button{color:#e5edf2!important}
 }
 
+
+/* Fahrtrichtung optisch an die Sichtungsmeldung angleichen */
+.sighting-description small{color:#203442;font-style:italic;font-weight:400}
+body[data-theme="dark"] .sighting-description small{color:#e5edf2!important;font-style:italic;font-weight:400}
+@media(prefers-color-scheme:dark){body:not([data-theme="light"]) .sighting-description small{color:#e5edf2!important;font-style:italic;font-weight:400}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
