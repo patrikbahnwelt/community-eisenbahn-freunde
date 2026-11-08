@@ -88,6 +88,7 @@ footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 .forum-topic-detail .forum-comments{margin-top:14px}
 @media(max-width:700px){.forum-category-block{padding:8px}.forum-topic-table{font-size:12px}.forum-topic-table th,.forum-topic-table td{padding:7px 8px}}
 .forum-admin-details>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:800;color:#173e55;padding:2px 0}.forum-admin-details>summary::-webkit-details-marker{display:none}.forum-admin-details>summary::after{content:"＋";font-size:20px;color:#c45327}.forum-admin-details[open]>summary::after{content:"−"}.forum-admin-details>summary span{margin-left:auto;font-size:12px;font-weight:500;color:#788890}.forum-admin-details[open]>summary{margin-bottom:14px}
+.auth-panel[hidden]{display:none!important}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -115,7 +116,7 @@ footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 const supabaseUrl = 'https://fhiijlzqfqddiwvsitow.supabase.co';
 const supabaseKey = 'sb_publishable_SXl83RfW6FRMBQgrO7Fqjg_vyLVad6_';
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-async function updateAuthStatus(){const status=document.getElementById('auth-status');const logout=document.getElementById('logout-button');const navButton=document.getElementById('auth-nav-button');if(!status)return;const {data:{session}}=await supabaseClient.auth.getSession();if(session&&session.user){status.textContent='✓ Angemeldet: '+(session.user.email||'Mitglied');status.classList.add('logged-in');logout.style.display='inline-block';navButton.textContent='Mein Konto';const {data:profile}=await supabaseClient.from('profiles').select('role').eq('id',session.user.id).single();}else{status.textContent='○ Nicht angemeldet';status.classList.remove('logged-in');logout.style.display='none';navButton.textContent='Anmelden';}}
+async function updateAuthStatus(){const status=document.getElementById('auth-status');const logout=document.getElementById('logout-button');const navButton=document.getElementById('auth-nav-button');const memberPanel=document.getElementById('anmelden');if(!status)return;const {data:{session}}=await supabaseClient.auth.getSession();if(session&&session.user){status.textContent='✓ Angemeldet: '+(session.user.email||'Mitglied');status.classList.add('logged-in');logout.style.display='inline-block';navButton.textContent='Mein Konto';if(memberPanel)memberPanel.hidden=true;}else{status.textContent='○ Nicht angemeldet';status.classList.remove('logged-in');logout.style.display='none';navButton.textContent='Anmelden';if(memberPanel)memberPanel.hidden=false;}}
 async function abmelden(){const {error}=await supabaseClient.auth.signOut();if(error){alert('Abmeldung fehlgeschlagen: '+error.message);return;}await updateAuthStatus();alert('Du bist jetzt abgemeldet.');}
 supabaseClient.auth.onAuthStateChange(()=>{updateAuthStatus();});
 updateAuthStatus();
