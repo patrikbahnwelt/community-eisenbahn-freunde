@@ -64,6 +64,23 @@ footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 .forum-reply-form .rich-editor{margin-bottom:8px}
 .forum-comment-form>div{flex:1;min-width:0}
 
+
+.forum-category-block{margin:18px 0 24px;background:#eaf1f4;border:1px solid #d7e3e8;border-radius:12px;padding:12px;box-shadow:0 2px 8px rgba(32,62,75,.035)}
+.forum-category-title{margin:2px 4px 10px;color:#173e55;font-size:19px}
+.forum-table-wrap{overflow-x:auto;border:1px solid #cbd9e0;border-radius:8px;background:#fff}
+.forum-topic-table{width:100%;border-collapse:collapse;font-size:13px;min-width:620px}
+.forum-topic-table th{background:#254c86;color:#fff;text-align:left;padding:9px 10px;font-size:12px;white-space:nowrap}
+.forum-topic-table td{padding:8px 10px;border-bottom:1px solid #d8e0e5;color:#304654;vertical-align:middle}
+.forum-topic-table tbody tr.forum-topic-row:nth-child(even){background:#f1f4f6}
+.forum-topic-table tbody tr.forum-topic-row:hover{background:#e5eff4}
+.forum-topic-name{width:48%;min-width:230px}
+.forum-topic-open{padding:2px 0;background:transparent;color:#174f91;border-radius:0;text-align:left;font:inherit;font-weight:600}
+.forum-topic-open:hover{text-decoration:underline;background:transparent}
+.forum-topic-count{text-align:center;font-variant-numeric:tabular-nums;width:90px}
+.forum-topic-detail-row>td{padding:12px 16px 16px!important;background:#eaf1f4;border-bottom:2px solid #cbd9e0!important}
+.forum-topic-detail{background:#fff;border:1px solid #d4e0e5;border-left:4px solid #7fa9ba;border-radius:8px;padding:15px}
+.forum-topic-detail .forum-comments{margin-top:14px}
+@media(max-width:700px){.forum-category-block{padding:8px}.forum-topic-table{font-size:12px}.forum-topic-table th,.forum-topic-table td{padding:7px 8px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -209,35 +226,64 @@ wrap.append(toolbar,area);mount.replaceChildren(wrap);return {area,getHtml:()=>s
 }
 
 async function loadForumPosts(){
-const status=document.getElementById('forum-status');
-const list=document.getElementById('forum-posts');
-if(!list)return;
-const {data:posts,error}=await supabaseClient.from('forum_posts').select('id,user_id,title,category,content,created_at').order('created_at',{ascending:false}).limit(100);
-if(error){if(status)status.textContent='Beiträge konnten nicht geladen werden: '+error.message;list.innerHTML='<div class="gallery-empty">Bitte prüfe die Anmeldung und die Forum-Berechtigungen.</div>';return;}
-const userIds=[...new Set((posts||[]).map(p=>p.user_id).filter(Boolean))];
-let names=new Map();
-if(userIds.length){const {data:profiles}=await supabaseClient.from('profiles').select('id,username').in('id',userIds);for(const p of (profiles||[]))names.set(p.id,p.username||'Mitglied');}
-if(status)status.textContent=(posts||[]).length+' Beitrag/Beiträge gefunden.';
-list.innerHTML='';
-if(!posts||posts.length===0){list.innerHTML='<div class="gallery-empty">Noch keine Beiträge vorhanden. Starte die erste Diskussion!</div>';return;}
-for(const post of posts){
-const article=document.createElement('article');article.className='forum-post';
-const tag=document.createElement('span');tag.className='tag';tag.textContent=post.category||'Allgemein';
-const title=document.createElement('h3');title.textContent=post.title||'Ohne Titel';
-const meta=document.createElement('div');meta.className='forum-meta';
-const author=document.createElement('span');author.textContent='👤 '+(names.get(post.user_id)||'Mitglied');
-const date=document.createElement('span');date.textContent='🕒 '+new Date(post.created_at).toLocaleString('de-DE');
-meta.append(author,date);
-const content=document.createElement('div');content.className='forum-content';content.innerHTML=safeForumHtml(post.content||'');
-const comments=document.createElement('div');comments.className='forum-comments';comments.id='forum-comments-'+post.id;
-article.append(tag,title,meta,content);
-const {data:{user:viewer}}=await supabaseClient.auth.getUser();
-if(viewer&&viewer.id===post.user_id){const edit=document.createElement('button');edit.type='button';edit.textContent='✏️ Beitrag bearbeiten';edit.addEventListener('click',()=>{try{showForumPostEditor(post,article);}catch(error){console.error('Fehler beim Öffnen der Beitragsbearbeitung:',error);alert('Die Beitragsbearbeitung konnte nicht geöffnet werden: '+(error?.message||String(error)));}});article.appendChild(edit);}
-article.appendChild(comments);list.appendChild(article);
-await loadForumComments(post.id,comments);
+ const status=document.getElementById('forum-status');
+ const list=document.getElementById('forum-posts');
+ if(!list)return;
+ const {data:posts,error}=await supabaseClient.from('forum_posts').select('id,user_id,title,category,content,created_at').order('created_at',{ascending:false}).limit(100);
+ if(error){if(status)status.textContent='Beiträge konnten nicht geladen werden: '+error.message;list.innerHTML='<div class="gallery-empty">Bitte prüfe die Anmeldung und die Forum-Berechtigungen.</div>';return;}
+ const allPosts=posts||[];
+ if(status)status.textContent=allPosts.length+' Beitrag/Beiträge in '+new Set(allPosts.map(p=>p.category||'Allgemeines')).size+' Kategorien.';
+ list.innerHTML='';
+ if(!allPosts.length){list.innerHTML='<div class="gallery-empty">Noch keine Beiträge vorhanden. Starte die erste Diskussion!</div>';return;}
+ const userIds=[...new Set(allPosts.map(p=>p.user_id).filter(Boolean))];
+ let names=new Map();
+ if(userIds.length){const {data:profiles}=await supabaseClient.from('profiles').select('id,username').in('id',userIds);for(const p of (profiles||[]))names.set(p.id,p.username||'Mitglied');}
+ const postIds=allPosts.map(p=>p.id);
+ let commentStats=new Map();
+ if(postIds.length){
+  const {data:allComments}=await supabaseClient.from('forum_comments').select('post_id,created_at').in('post_id',postIds);
+  for(const c of (allComments||[])){const stat=commentStats.get(c.post_id)||{count:0,last:null};stat.count++;if(!stat.last||new Date(c.created_at)>new Date(stat.last))stat.last=c.created_at;commentStats.set(c.post_id,stat);}
+ }
+ const {data:{user:viewer}}=await supabaseClient.auth.getUser();
+ const categories=['Aktuelle Sichtungen','Allgemeines','Fahrzeuge','Strecken & Infrastruktur','Fotografie','Fragen & Hilfe'];
+ const groups=new Map();
+ for(const post of allPosts){const category=post.category||'Allgemeines';if(!groups.has(category))groups.set(category,[]);groups.get(category).push(post);}
+ const ordered=[...categories.filter(c=>groups.has(c)),...Array.from(groups.keys()).filter(c=>!categories.includes(c))];
+ for(const category of ordered){
+  const section=document.createElement('section');section.className='forum-category-block';
+  const heading=document.createElement('h3');heading.className='forum-category-title';heading.textContent=category;
+  const tableWrap=document.createElement('div');tableWrap.className='forum-table-wrap';
+  const table=document.createElement('table');table.className='forum-topic-table';
+  table.innerHTML='<thead><tr><th>Thema</th><th>Antworten</th><th>Begonnen von</th><th>Letzter Beitrag</th></tr></thead>';
+  const tbody=document.createElement('tbody');
+  for(const post of groups.get(category)){
+   const stat=commentStats.get(post.id)||{count:0,last:null};
+   const tr=document.createElement('tr');tr.className='forum-topic-row';
+   const topicCell=document.createElement('td');topicCell.className='forum-topic-name';
+   const open=document.createElement('button');open.type='button';open.className='forum-topic-open';open.textContent='▸ '+(post.title||'Ohne Titel');open.setAttribute('aria-expanded','false');
+   topicCell.appendChild(open);
+   const count=document.createElement('td');count.className='forum-topic-count';count.textContent=String(stat.count);
+   const author=document.createElement('td');author.textContent=names.get(post.user_id)||'Mitglied';
+   const last=document.createElement('td');last.textContent=new Date(stat.last||post.created_at).toLocaleString('de-DE');
+   tr.append(topicCell,count,author,last);
+   const detailRow=document.createElement('tr');detailRow.className='forum-topic-detail-row';detailRow.hidden=true;
+   const detailCell=document.createElement('td');detailCell.colSpan=4;
+   const article=document.createElement('article');article.className='forum-topic-detail';
+   const meta=document.createElement('div');meta.className='forum-meta';meta.textContent='👤 '+(names.get(post.user_id)||'Mitglied')+' · Erstellt am '+new Date(post.created_at).toLocaleString('de-DE');
+   const content=document.createElement('div');content.className='forum-content';content.innerHTML=safeForumHtml(post.content||'');
+   const comments=document.createElement('div');comments.className='forum-comments';comments.id='forum-comments-'+post.id;
+   article.append(meta,content);
+   if(viewer&&viewer.id===post.user_id){const edit=document.createElement('button');edit.type='button';edit.textContent='✏️ Beitrag bearbeiten';edit.addEventListener('click',()=>{try{showForumPostEditor(post,article);}catch(error){console.error('Fehler beim Öffnen der Beitragsbearbeitung:',error);alert('Die Beitragsbearbeitung konnte nicht geöffnet werden: '+(error?.message||String(error)));}});article.appendChild(edit);}
+   article.appendChild(comments);detailCell.appendChild(article);detailRow.appendChild(detailCell);
+   let commentsLoaded=false;
+   const toggle=async()=>{detailRow.hidden=!detailRow.hidden;open.setAttribute('aria-expanded',String(!detailRow.hidden));open.textContent=(detailRow.hidden?'▸ ':'▾ ')+(post.title||'Ohne Titel');if(!detailRow.hidden&&!commentsLoaded){await loadForumComments(post.id,comments);commentsLoaded=true;}};
+   open.addEventListener('click',toggle);
+   tr.addEventListener('dblclick',toggle);
+   tbody.append(tr,detailRow);
+  }
+  table.appendChild(tbody);tableWrap.appendChild(table);section.append(heading,tableWrap);list.appendChild(section);
+ }
 }
-}
-
 async function loadForumComments(postId,container){
 const {data:comments,error}=await supabaseClient.from('forum_comments').select('id,post_id,user_id,parent_comment_id,content,created_at').eq('post_id',postId).order('created_at',{ascending:true});
 container.innerHTML='';
