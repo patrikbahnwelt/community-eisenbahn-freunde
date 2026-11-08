@@ -85,7 +85,7 @@ footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<header><div class="brand">🚆 Community für Eisenbahn-Freunde<small>Sehen. Melden. Austauschen.</small></div><nav><span id="auth-status" class="auth-status">Prüfe Anmeldung …</span><button onclick="show('sichtungen')">Sichtungen</button><button onclick="show('forum')">Forum</button><button onclick="show('galerie')">Bildergalerie</button><button id="auth-nav-button" onclick="document.getElementById('anmelden').scrollIntoView({behavior:'smooth'})">Mitgliederbereich</button><button id="logout-button" style="display:none" onclick="abmelden()">Abmelden</button><button id="nav-admin" style="display:none" onclick="show('admin')">⚙️ Seitenverwaltung</button></nav></header>
+<header><div class="brand">🚆 Community für Eisenbahn-Freunde<small>Sehen. Melden. Austauschen.</small></div><nav><span id="auth-status" class="auth-status">Prüfe Anmeldung …</span><button onclick="show('sichtungen')">Sichtungen</button><button onclick="show('forum')">Forum</button><button onclick="show('galerie')">Bildergalerie</button><button id="auth-nav-button" onclick="document.getElementById('anmelden').scrollIntoView({behavior:'smooth'})">Mitgliederbereich</button><button id="logout-button" style="display:none" onclick="abmelden()">Abmelden</button></nav></header>
 <section class="hero"><div><div class="kicker">DIE COMMUNITY FÜR EISENBAHN-BEGEISTERTE</div><h1>Die Eisenbahn im Blick.<br><em>Gemeinsam unterwegs.</em></h1><p>Teile aktuelle Sichtungen, entdecke besondere Züge und tausche dich mit anderen Eisenbahn-Freunden aus.</p><button class="primary" onclick="show('sichtungen');document.getElementById('newform').scrollIntoView({behavior:'smooth'})">＋ Sichtung melden</button></div></section>
 <div class="wrap"><aside><div class="kicker">COMMUNITY</div><button class="active" id="nav-sichtungen" onclick="show('sichtungen')">🚆 Sichtungen</button><button id="nav-forum" onclick="show('forum')">💬 Forum</button><button id="nav-galerie" onclick="show('galerie')">📷 Bildergalerie</button><button onclick="alert('Mitgliederprofile folgen mit der Anmeldung.')">👥 Mitglieder</button><div class="notice">Fair miteinander: Unsere Community lebt von Respekt, guten Sichtungen und der Freude an der Eisenbahn.</div></aside>
 <main id="main"><div class="heading"><div><div class="kicker">LIVE AUS DER COMMUNITY</div><h2>Aktuelle Sichtungen</h2><p>Was rollt gerade auf unseren Schienen?</p></div><button class="primary" onclick="document.getElementById('newform').scrollIntoView({behavior:'smooth'})">＋ Neue Sichtung</button></div>
@@ -100,7 +100,7 @@ footer{padding:25px;text-align:center;color:#89969c;font-size:11px}
 const supabaseUrl = 'https://fhiijlzqfqddiwvsitow.supabase.co';
 const supabaseKey = 'sb_publishable_SXl83RfW6FRMBQgrO7Fqjg_vyLVad6_';
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-async function updateAuthStatus(){const status=document.getElementById('auth-status');const logout=document.getElementById('logout-button');const navButton=document.getElementById('auth-nav-button');if(!status)return;const {data:{session}}=await supabaseClient.auth.getSession();if(session&&session.user){status.textContent='✓ Angemeldet: '+(session.user.email||'Mitglied');status.classList.add('logged-in');logout.style.display='inline-block';navButton.textContent='Mein Konto';const {data:profile}=await supabaseClient.from('profiles').select('role').eq('id',session.user.id).single();document.getElementById('nav-admin').style.display=profile?.role==='admin'?'inline-block':'none';}else{status.textContent='○ Nicht angemeldet';status.classList.remove('logged-in');logout.style.display='none';navButton.textContent='Anmelden';}}
+async function updateAuthStatus(){const status=document.getElementById('auth-status');const logout=document.getElementById('logout-button');const navButton=document.getElementById('auth-nav-button');if(!status)return;const {data:{session}}=await supabaseClient.auth.getSession();if(session&&session.user){status.textContent='✓ Angemeldet: '+(session.user.email||'Mitglied');status.classList.add('logged-in');logout.style.display='inline-block';navButton.textContent='Mein Konto';const {data:profile}=await supabaseClient.from('profiles').select('role').eq('id',session.user.id).single();}else{status.textContent='○ Nicht angemeldet';status.classList.remove('logged-in');logout.style.display='none';navButton.textContent='Anmelden';}}
 async function abmelden(){const {error}=await supabaseClient.auth.signOut();if(error){alert('Abmeldung fehlgeschlagen: '+error.message);return;}await updateAuthStatus();alert('Du bist jetzt abgemeldet.');}
 supabaseClient.auth.onAuthStateChange(()=>{updateAuthStatus();});
 updateAuthStatus();
@@ -113,7 +113,7 @@ let m=document.getElementById('main');m.style.display='block';
 if(page==='sichtungen'){m.innerHTML=window.sightingsMarkup||m.innerHTML;loadSightings();return}
 if(page==='galerie'){renderGallery();return}
 if(page==='forum'){renderForum();return}
-if(page==='admin'){renderAdmin();return}
+
 m.innerHTML='<section class="formbox"><h2>Bereich</h2></section>';
 }
 
@@ -208,6 +208,7 @@ async function moveForumPost(post,newCategory){
 async function renderForum(){
 const m=document.getElementById('main');
 m.innerHTML=`<section class="formbox"><div class="kicker">AUSTAUSCH & DISKUSSION</div><h2>Das Forum</h2><p>Fragen, Streckenthemen, Fahrzeugdiskussionen und alles, was Eisenbahn-Freunde bewegt.</p><div id="forum-status" class="notice">Forum wird geladen …</div></section>
+<section id="forum-admin-tools" class="formbox" hidden><h3>⚙️ Forumverwaltung</h3><p class="note">Nur für Administratoren: Kategorien verwalten und Beiträge verschieben.</p><section class="formbox"><h3>➕ Neue Kategorie</h3><form id="admin-category-form"><label>Kategoriename *<input id="admin-category-name" required maxlength="80" placeholder="z. B. Modellbahn"></label><button class="primary" type="submit">Kategorie anlegen</button></form></section><section class="formbox"><h3>📂 Kategorien</h3><div id="admin-category-list"></div></section><section class="formbox"><h3>↔️ Beiträge verschieben</h3><p class="note">Wähle einen Beitrag und seine neue Kategorie aus.</p><div id="admin-post-list"></div></section><div id="admin-forum-status" class="notice">Verwaltung wird geladen …</div></section>
 <section class="formbox"><h3>✍️ Neuen Beitrag schreiben</h3><form id="forum-post-form">
 <label>Überschrift *<input id="forum-title" required maxlength="150" placeholder="Worum geht es?"></label>
 <label>Kategorie *<select id="forum-category" required><option value="">Kategorien werden geladen …</option></select></label>
@@ -219,6 +220,15 @@ window.forumPostEditor=makeRichEditor(document.getElementById('forum-content-edi
 document.getElementById('forum-post-form').addEventListener('submit',submitForumPost);
 await loadForumCategoryOptions();
 await loadForumPosts();
+const {data:{user}}=await supabaseClient.auth.getUser();
+if(user){
+ const {data:profile}=await supabaseClient.from('profiles').select('role').eq('id',user.id).single();
+ if(profile?.role==='admin'){
+  const tools=document.getElementById('forum-admin-tools');if(tools)tools.hidden=false;
+  document.getElementById('admin-category-form').addEventListener('submit',createForumCategory);
+  await loadAdminForum();
+ }
+}
 }
 async function loadForumCategoryOptions(){const select=document.getElementById("forum-category");if(!select)return;const {data,error}=await supabaseClient.from("forum_categories").select("name").eq("is_active",true).order("sort_order",{ascending:true});if(error){select.innerHTML='<option value="">Kategorien konnten nicht geladen werden</option>';console.error(error);return;}select.innerHTML='<option value="">Bitte auswählen</option>';for(const cat of data||[]){const option=document.createElement("option");option.value=cat.name;option.textContent=cat.name;select.appendChild(option);}}
 
