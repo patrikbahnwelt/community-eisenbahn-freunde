@@ -674,7 +674,7 @@ if(error){alert('Löschen fehlgeschlagen: '+error.message);return;}
 await loadSightings();alert('Deine Sichtung wurde gelöscht.');
 }
 
-function filterCards(){let q=document.getElementById('search').value.toLowerCase();document.querySelectorAll('#cards .card').forEach(c=>c.style.display=c.innerText.toLowerCase().includes(q)?'grid':'none')}
+function filterCards(){const q=(document.getElementById('search')?.value||'').toLowerCase().trim(),period=document.getElementById('sighting-date')?.value||'all',now=new Date();document.querySelectorAll('#cards .sighting-row:not(.sighting-head)').forEach(row=>{const dText=row.querySelector('.sighting-time')?.textContent||'',parts=dText.split(', '),date=parts[0]?.split('.');let stamp=date?.length===3?new Date(Number(date[2]),Number(date[1])-1,Number(date[0])):null;const today=new Date(now.getFullYear(),now.getMonth(),now.getDate()),days=stamp?(today-stamp)/86400000:999;const matchText=(row.dataset.search||'').includes(q);const matchDate=period==='all'||(period==='today'&&days===0)||(period==='week'&&days>=0&&days<7);row.style.display=matchText&&matchDate?'grid':'none';});}
 async function renderGallery(){
 const m=document.getElementById('main');
 m.innerHTML=`<section class="formbox"><div class="kicker">FOTOS AUS DER COMMUNITY</div><h2>Bildergalerie</h2><p>Lege eigene Alben an und teile deine Eisenbahnfotos mit der Community.</p><div id="gallery-status" class="notice">Die Galerie wird geladen …</div></section>
