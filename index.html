@@ -583,14 +583,19 @@ button.textContent=originalText;
 }
 }
 
+let stationSearchRequest=0;
 async function searchBetriebsstellen(){
  const input=document.getElementById('station'),box=document.getElementById('station-suggestions'),hidden=document.getElementById('bst-code'),hint=document.getElementById('station-selected');
- const q=input.value.trim();hidden.value='';hint.textContent='Bitte eine Betriebsstelle aus den offiziellen Treffern auswählen.';box.innerHTML='';
+ const q=input.value.trim().replace(/^\\[|\\]$/g,'');const request=++stationSearchRequest;
+ hidden.value='';hint.textContent='Bitte eine Betriebsstelle aus den offiziellen Treffern auswählen.';box.innerHTML='';
  if(q.length<2)return;
- const {data,error}=await supabaseClient.from('betriebsstellen').select('code,name,type').or('code.ilike.%'+q+'%,name.ilike.%'+q+'%,short_name.ilike.%'+q+'%').limit(12);
+ const {data,error}=await supabaseClient.from('betriebsstellen').select('code,name,type').or('code.ilike.%'+q+'%,name.ilike.%'+q+'%,short_name.ilike.%'+q+'%').limit(100);
+ if(request!==stationSearchRequest||input.value.trim().replace(/^\\[|\\]$/g,'')!==q)return;
  if(error){console.error('Betriebsstellensuche:',error.message);hint.textContent='Suche momentan nicht verfügbar.';return;}
- for(const item of(data||[])){const b=document.createElement('button');b.type='button';b.textContent='['+item.code+'] '+item.name+(item.type?' · '+item.type:'');b.addEventListener('click',()=>{input.value=item.name;hidden.value=item.code;box.innerHTML='';hint.textContent='Ausgewählt: ['+item.code+'] '+item.name;});box.appendChild(b);}
- if(!data?.length)hint.textContent='Keine passende Betriebsstelle gefunden. Bitte Kürzel oder Schreibweise prüfen.';
+ const normalize=v=>(v||'').replace(/[\\[\\]]/g,'').trim().toUpperCase();
+ const results=(data||[]).sort((a,b)=>{const ac=normalize(a.code),bc=normalize(b.code),needle=normalize(q);const rank=x=>x===needle?0:x.startsWith(needle)?1:x.includes(needle)?2:3;return rank(ac)-rank(bc)||a.name.localeCompare(b.name,'de');}).slice(0,12);
+ for(const item of results){const b=document.createElement('button');b.type='button';b.textContent='['+item.code+'] '+item.name+(item.type?' · '+item.type:'');b.addEventListener('click',()=>{input.value=item.name;hidden.value=item.code;box.innerHTML='';hint.textContent='Ausgewählt: ['+item.code+'] '+item.name;});box.appendChild(b);}
+ if(!results.length)hint.textContent='Keine passende Betriebsstelle gefunden. Bitte Kürzel oder Schreibweise prüfen.';
 }
 async function addSighting(e){
  e.preventDefault();const {data:{user},error:userError}=await supabaseClient.auth.getUser();
