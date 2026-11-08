@@ -113,7 +113,96 @@ let m=document.getElementById('main');m.style.display='block';
 if(page==='sichtungen'){m.innerHTML=window.sightingsMarkup||m.innerHTML;loadSightings();return}
 if(page==='galerie'){renderGallery();return}
 if(page==='forum'){renderForum();return}
+if(page==='admin'){renderAdmin();return}
 m.innerHTML='<section class="formbox"><h2>Bereich</h2></section>';
+}
+
+
+async function renderAdmin(){
+ const m=document.getElementById('main');
+ const {data:{user}}=await supabaseClient.auth.getUser();
+ if(!user){m.innerHTML='<section class="formbox"><h2>Adminbereich</h2><p>Bitte melde dich an.</p></section>';return;}
+ const {data:profile,error:profileError}=await supabaseClient.from('profiles').select('role').eq('id',user.id).single();
+ if(profileError||profile?.role!=='admin'){m.innerHTML='<section class="formbox"><h2>Kein Zugriff</h2><p>Dieser Bereich ist nur für Administratoren.</p></section>';return;}
+ m.innerHTML=`<section class="formbox"><div class="kicker">VERWALTUNG</div><h2>Forum verwalten</h2><p>Kategorien verwalten und Beiträge bei Bedarf in eine andere Kategorie verschieben.</p><div id="admin-forum-status" class="notice">Verwaltung wird geladen …</div></section>
+ <section class="formbox"><h3>➕ Neue Kategorie</h3><form id="admin-category-form"><label>Kategoriename *<input id="admin-category-name" required maxlength="80" placeholder="z. B. Modellbahn"></label><button class="primary" type="submit">Kategorie anlegen</button></form></section>
+ <section class="formbox"><h3>📂 Kategorien</h3><div id="admin-category-list"></div></section>
+ <section class="formbox"><h3>↔️ Beiträge verschieben</h3><p class="note">Wähle einen Beitrag und seine neue Kategorie aus.</p><div id="admin-post-list"></div></section>`;
+ document.getElementById('admin-category-form').addEventListener('submit',createForumCategory);
+ await loadAdminForum();
+}
+async function loadAdminForum(){
+ const status=document.getElementById('admin-forum-status');if(!status)return;
+ const [{data:cats,error:catError},{data:posts,error:postError}]=await Promise.all([
+  supabaseClient.from('forum_categories').select('id,name,sort_order,is_active').order('sort_order',{ascending:true}),
+  supabaseClient.from('forum_posts').select('id,title,category,created_at').order('created_at',{ascending:false}).limit(200)
+ ]);
+ if(catError){status.textContent='Kategorien konnten nicht geladen werden: '+catError.message;return;}
+ if(postError){status.textContent='Beiträge konnten nicht geladen werden: '+postError.message;return;}
+ status.textContent=(cats||[]).length+' Kategorien · '+(posts||[]).length+' Beiträge.';
+ const counts=new Map();for(const p of posts||[])counts.set(p.category,(counts.get(p.category)||0)+1);
+ const list=document.getElementById('admin-category-list');list.innerHTML='';
+ for(const cat of cats||[]){
+  const row=document.createElement('div');row.className='formbox';row.style.margin='10px 0';row.style.padding='12px';
+  const line=document.createElement('div');line.style.cssText='display:flex;gap:10px;align-items:center;flex-wrap:wrap';
+  const name=document.createElement('strong');name.textContent=cat.name;
+  const meta=document.createElement('span');meta.className='note';meta.textContent=(counts.get(cat.name)||0)+' Beitrag/Beiträge · '+(cat.is_active?'aktiv':'inaktiv');
+  const edit=document.createElement('button');edit.type='button';edit.textContent='✏️ Umbenennen';edit.addEventListener('click',()=>renameForumCategory(cat,posts||[]));
+  const toggle=document.createElement('button');toggle.type='button';toggle.textContent=cat.is_active?'Deaktivieren':'Aktivieren';toggle.addEventListener('click',()=>toggleForumCategory(cat));
+  const del=document.createElement('button');del.type='button';del.className='danger';del.textContent='🗑️ Löschen';del.disabled=(counts.get(cat.name)||0)>0;del.title=del.disabled?'Erst alle Beiträge aus dieser Kategorie verschieben.':'Kategorie löschen';del.addEventListener('click',()=>deleteForumCategory(cat));
+  line.append(name,meta,edit,toggle,del);row.appendChild(line);list.appendChild(row);
+ }
+ const postList=document.getElementById('admin-post-list');postList.innerHTML='';
+ if(!(posts||[]).length){postList.innerHTML='<p class="note">Noch keine Beiträge vorhanden.</p>';return;}
+ for(const post of posts||[]){
+  const row=document.createElement('div');row.style.cssText='display:grid;grid-template-columns:minmax(180px,1fr) minmax(150px,220px) auto;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid #e5eaec';
+  const title=document.createElement('span');title.textContent=post.title+' · '+(post.category||'Allgemeines');
+  const select=document.createElement('select');select.style.cssText='min-width:0;padding:8px;border:1px solid #dce4e7;border-radius:7px';
+  for(const cat of cats||[]){if(!cat.is_active&&cat.name!==post.category)continue;const o=document.createElement('option');o.value=cat.name;o.textContent=cat.name;o.selected=cat.name===post.category;select.appendChild(o);}
+  const move=document.createElement('button');move.type='button';move.className='primary';move.textContent='Verschieben';move.disabled=select.value===post.category;select.addEventListener('change',()=>move.disabled=select.value===post.category);
+  move.addEventListener('click',()=>moveForumPost(post,select.value));
+  row.append(title,select,move);postList.appendChild(row);
+ }
+}
+async function createForumCategory(e){
+ e.preventDefault();const name=document.getElementById('admin-category-name').value.trim();if(!name)return;
+ const {data:existing}=await supabaseClient.from('forum_categories').select('id').ilike('name',name).limit(1);
+ if(existing?.length){alert('Diese Kategorie gibt es bereits.');return;}
+ const {error}=await supabaseClient.from('forum_categories').insert({name,sort_order:100,is_active:true});
+ if(error){alert('Kategorie konnte nicht angelegt werden: '+error.message);return;}
+ e.target.reset();await loadAdminForum();alert('Kategorie wurde angelegt.');
+}
+async function renameForumCategory(cat,posts){
+ const next=prompt('Neuer Name für die Kategorie:',cat.name);if(next===null)return;const name=next.trim();if(!name||name===cat.name)return;
+ const {data:existing}=await supabaseClient.from('forum_categories').select('id').ilike('name',name).neq('id',cat.id).limit(1);
+ if(existing?.length){alert('Dieser Kategoriename ist bereits vergeben.');return;}
+ const {error}=await supabaseClient.from('forum_categories').update({name}).eq('id',cat.id);
+ if(error){alert('Kategorie konnte nicht umbenannt werden: '+error.message);return;}
+ const {error:postsError}=await supabaseClient.from('forum_posts').update({category:name}).eq('category',cat.name);
+ if(postsError){alert('Kategorie wurde umbenannt, aber Beiträge konnten nicht alle aktualisiert werden: '+postsError.message);}
+ await loadAdminForum();alert('Kategorie wurde umbenannt.');
+}
+async function toggleForumCategory(cat){
+ const {error}=await supabaseClient.from('forum_categories').update({is_active:!cat.is_active}).eq('id',cat.id);
+ if(error){alert('Status konnte nicht geändert werden: '+error.message);return;}
+ await loadAdminForum();
+}
+async function deleteForumCategory(cat){
+ if(!confirm('Kategorie „'+cat.name+'“ wirklich löschen?'))return;
+ const {data:posts,error:postsError}=await supabaseClient.from('forum_posts').select('id').eq('category',cat.name).limit(1);
+ if(postsError){alert('Beiträge konnten nicht geprüft werden: '+postsError.message);return;}
+ if(posts?.length){alert('Diese Kategorie enthält noch Beiträge. Bitte verschiebe sie zuerst.');return;}
+ const {error}=await supabaseClient.from('forum_categories').delete().eq('id',cat.id);
+ if(error){alert('Kategorie konnte nicht gelöscht werden: '+error.message);return;}
+ await loadAdminForum();alert('Kategorie wurde gelöscht.');
+}
+async function moveForumPost(post,newCategory){
+ if(!newCategory||newCategory===post.category)return;
+ if(!confirm('Beitrag „'+post.title+'“ nach „'+newCategory+'“ verschieben?'))return;
+ const {data:{user}}=await supabaseClient.auth.getUser();
+ const {error}=await supabaseClient.from('forum_posts').update({category:newCategory}).eq('id',post.id);
+ if(error){alert('Beitrag konnte nicht verschoben werden: '+error.message);return;}
+ await loadAdminForum();alert('Beitrag wurde verschoben.');
 }
 
 async function renderForum(){
@@ -121,15 +210,17 @@ const m=document.getElementById('main');
 m.innerHTML=`<section class="formbox"><div class="kicker">AUSTAUSCH & DISKUSSION</div><h2>Das Forum</h2><p>Fragen, Streckenthemen, Fahrzeugdiskussionen und alles, was Eisenbahn-Freunde bewegt.</p><div id="forum-status" class="notice">Forum wird geladen …</div></section>
 <section class="formbox"><h3>✍️ Neuen Beitrag schreiben</h3><form id="forum-post-form">
 <label>Überschrift *<input id="forum-title" required maxlength="150" placeholder="Worum geht es?"></label>
-<label>Kategorie *<select id="forum-category" required><option value="">Bitte auswählen</option><option>Allgemeines</option><option>Fahrzeuge</option><option>Strecken & Infrastruktur</option><option>Aktuelle Sichtungen</option><option>Fotografie</option><option>Fragen & Hilfe</option></select></label>
+<label>Kategorie *<select id="forum-category" required><option value="">Kategorien werden geladen …</option></select></label>
 <label>Dein Beitrag *</label><div id="forum-content-editor"></div>
 <button class="primary" type="submit">Beitrag veröffentlichen</button>
 </form><p class="note">Zum Schreiben und Kommentieren musst du angemeldet sein.</p></section>
 <section class="forum-list-section"><div class="heading"><div><h2>Beiträge der Community</h2><p>Neueste Diskussionen zuerst</p></div></div><div id="forum-posts"><div class="gallery-empty">Beiträge werden geladen …</div></div></section>`;
 window.forumPostEditor=makeRichEditor(document.getElementById('forum-content-editor'),'Schreibe hier deinen Beitrag …');
 document.getElementById('forum-post-form').addEventListener('submit',submitForumPost);
+await loadForumCategoryOptions();
 await loadForumPosts();
 }
+async function loadForumCategoryOptions(){const select=document.getElementById("forum-category");if(!select)return;const {data,error}=await supabaseClient.from("forum_categories").select("name").eq("is_active",true).order("sort_order",{ascending:true});if(error){select.innerHTML='<option value="">Kategorien konnten nicht geladen werden</option>';console.error(error);return;}select.innerHTML='<option value="">Bitte auswählen</option>';for(const cat of data||[]){const option=document.createElement("option");option.value=cat.name;option.textContent=cat.name;select.appendChild(option);}}
 
 function escapeRichText(value){return String(value||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function safeForumHtml(input){
