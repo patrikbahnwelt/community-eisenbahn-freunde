@@ -133,6 +133,23 @@ body[data-theme="dark"] a{color:#8fc5e8}
 body[data-theme="dark"] .notice{background:#3a3029;border-color:#655044;color:#f0c7a8}
 body[data-theme="dark"] footer{color:#aebbc2}
 
+
+/* Lesbarkeit der Sichtungsliste im Dunkelmodus */
+body[data-theme="dark"] .sighting-time,body[data-theme="dark"] .sighting-code,body[data-theme="dark"] .sighting-station,body[data-theme="dark"] .sighting-description strong,body[data-theme="dark"] .sighting-description small,body[data-theme="dark"] .sighting-author,body[data-theme="dark"] .sighting-expand{color:#e5edf2!important}
+body[data-theme="dark"] .sighting-row,body[data-theme="dark"] .sighting-row:nth-child(even){background:#293640!important;border-bottom-color:#465660}
+body[data-theme="dark"] .sighting-head,body[data-theme="dark"] .sighting-head *{background:#244f91!important;color:#fff!important}
+body[data-theme="dark"] .sighting-discussion{background:#253642!important}
+body[data-theme="dark"] .sighting-comment{background:#344550!important;color:#f0f4f6!important}
+body[data-theme="dark"] .sighting-comment-meta,body[data-theme="dark"] .sighting-comment-content,body[data-theme="dark"] .sighting-comment-actions button{color:#e5edf2!important}
+@media(prefers-color-scheme:dark){
+ body:not([data-theme="light"]) .sighting-time,body:not([data-theme="light"]) .sighting-code,body:not([data-theme="light"]) .sighting-station,body:not([data-theme="light"]) .sighting-description strong,body:not([data-theme="light"]) .sighting-description small,body:not([data-theme="light"]) .sighting-author,body:not([data-theme="light"]) .sighting-expand{color:#e5edf2!important}
+ body:not([data-theme="light"]) .sighting-row,body:not([data-theme="light"]) .sighting-row:nth-child(even){background:#293640!important;border-bottom-color:#465660}
+ body:not([data-theme="light"]) .sighting-head,body:not([data-theme="light"]) .sighting-head *{background:#244f91!important;color:#fff!important}
+ body:not([data-theme="light"]) .sighting-discussion{background:#253642!important}
+ body:not([data-theme="light"]) .sighting-comment{background:#344550!important;color:#f0f4f6!important}
+ body:not([data-theme="light"]) .sighting-comment-meta,body:not([data-theme="light"]) .sighting-comment-content,body:not([data-theme="light"]) .sighting-comment-actions button{color:#e5edf2!important}
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
