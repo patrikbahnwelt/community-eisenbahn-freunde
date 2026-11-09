@@ -901,13 +901,13 @@ const form=document.createElement('form');form.className='photo-edit-form';
 function addField(labelText,element){const label=document.createElement('label');label.textContent=labelText;label.appendChild(element);form.appendChild(label);return element;}
 const caption=document.createElement('input');caption.maxLength=250;caption.value=photo.caption||'';addField('Bildunterschrift',caption);
 const location=document.createElement('input');location.maxLength=160;location.value=photo.location_name||'';addField('Aufnahmeort',location);
-const date=document.createElement('input');date.type='datetime-local';if(photo.taken_at){const d=new Date(photo.taken_at);date.value=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);}addField('Aufnahmedatum',date);
+const date=document.createElement('input');date.type='date';if(photo.taken_at){const d=new Date(photo.taken_at);date.value=d.toLocaleDateString('en-CA');}addField('Aufnahmedatum',date);
 const album=document.createElement('select');for(const a of albums.filter(a=>a.user_id===photo.user_id)){const opt=document.createElement('option');opt.value=a.id;opt.textContent=a.title;opt.selected=a.id===photo.album_id;album.appendChild(opt);}addField('Eigenes Album',album);
 const actions=document.createElement('div');actions.className='sighting-actions';
 const save=document.createElement('button');save.type='submit';save.className='primary';save.textContent='Änderungen speichern';
 const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Abbrechen';cancel.addEventListener('click',()=>form.remove());
 actions.append(save,cancel);form.appendChild(actions);
-form.addEventListener('submit',async e=>{e.preventDefault();const {data:{user}}=await supabaseClient.auth.getUser();if(!user||user.id!==photo.user_id){alert('Du kannst nur deine eigenen Fotos bearbeiten.');return;}save.disabled=true;const {error}=await supabaseClient.from('gallery_photos').update({caption:caption.value.trim()||null,location_name:location.value.trim()||null,taken_at:date.value?new Date(date.value).toISOString():null,album_id:album.value}).eq('id',photo.id).eq('user_id',user.id);save.disabled=false;if(error){alert('Änderungen konnten nicht gespeichert werden: '+error.message);return;}await loadGallery();alert('Die Bildangaben wurden aktualisiert.');});
+form.addEventListener('submit',async e=>{e.preventDefault();const {data:{user}}=await supabaseClient.auth.getUser();if(!user||user.id!==photo.user_id){alert('Du kannst nur deine eigenen Fotos bearbeiten.');return;}save.disabled=true;const {error}=await supabaseClient.from('gallery_photos').update({caption:caption.value.trim()||null,location_name:location.value.trim()||null,taken_at:date.value?new Date(date.value+'T12:00:00').toISOString():null,album_id:album.value}).eq('id',photo.id).eq('user_id',user.id);save.disabled=false;if(error){alert('Änderungen konnten nicht gespeichert werden: '+error.message);return;}await loadGallery();alert('Die Bildangaben wurden aktualisiert.');});
 info.appendChild(form);
 }
 
