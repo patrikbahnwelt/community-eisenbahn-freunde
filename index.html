@@ -242,7 +242,7 @@ m.innerHTML=`<section><div class="heading"><div><div class="kicker">SCHÖN, DASS
 const sightingBox=document.getElementById('home-sightings');
 const postBox=document.getElementById('home-posts');
 const [sightingsResult,postsResult]=await Promise.all([
-supabaseClient.from('sightings').select('station,train_type,train_number,direction,created_at').order('created_at',{ascending:false}).limit(5),
+supabaseClient.from('sightings').select('station,note,direction,created_at').order('created_at',{ascending:false}).limit(5),
 supabaseClient.from('forum_posts').select('title,category,created_at').order('created_at',{ascending:false}).limit(5)
 ]);
 function addItems(box,items,kind){
@@ -250,9 +250,9 @@ box.innerHTML='';
 if(!items||!items.length){box.textContent='Noch keine Einträge vorhanden.';box.className='home-empty';return;}
 for(const item of items){
 const row=document.createElement('div');row.className='home-latest-item';
-const strong=document.createElement('strong');strong.textContent=kind==='sighting'?(item.station||'Unbekannter Ort'):(item.title||'Beitrag ohne Titel');
+const strong=document.createElement('strong');strong.textContent=kind==='sighting'?(item.note||'Sichtungsmeldung'):(item.title||'Beitrag ohne Titel');
 const small=document.createElement('small');
-small.textContent=kind==='sighting'?[item.train_type,item.train_number,item.direction?'→ '+item.direction:''].filter(Boolean).join(' · '):[item.category,new Date(item.created_at).toLocaleDateString('de-DE')].filter(Boolean).join(' · ');
+small.textContent=kind==='sighting'?(item.direction?'→ '+item.direction:''):[item.category,new Date(item.created_at).toLocaleDateString('de-DE')].filter(Boolean).join(' · ');
 row.append(strong,small);box.appendChild(row);
 }
 }
