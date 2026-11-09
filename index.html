@@ -688,6 +688,7 @@ async function addSighting(e){
  e.target.reset();document.getElementById('station-selected').textContent='Bitte eine Betriebsstelle aus den offiziellen Treffern auswählen.';await loadSightings();alert('Deine Sichtung wurde veröffentlicht. Vielen Dank!');
 }
 async function loadSightings(){
+ const dateInput=document.getElementById('sighting-datetime');if(dateInput&&!dateInput.value){const now=new Date();dateInput.value=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,16);}
  const cards=document.getElementById('cards');if(!cards)return;
  const {data,error}=await supabaseClient.from('sightings').select('id,user_id,station,bst_code,train_type,train_number,direction,note,photo_urls,created_at').order('created_at',{ascending:false}).limit(100);
  if(error){cards.textContent='Sichtungen konnten nicht geladen werden: '+error.message;return;}
