@@ -798,23 +798,15 @@ await loadSightings();alert('Deine Sichtung wurde gelöscht.');
 }
 
 function filterCards(){const q=(document.getElementById('search')?.value||'').toLowerCase().trim(),period=document.getElementById('sighting-date')?.value||'all',now=new Date();document.querySelectorAll('#cards .sighting-row:not(.sighting-head)').forEach(row=>{const dText=row.querySelector('.sighting-time')?.textContent||'',parts=dText.split(', '),date=parts[0]?.split('.');let stamp=date?.length===3?new Date(Number(date[2]),Number(date[1])-1,Number(date[0])):null;const today=new Date(now.getFullYear(),now.getMonth(),now.getDate()),days=stamp?(today-stamp)/86400000:999;const matchText=(row.dataset.search||'').includes(q);const matchDate=period==='all'||(period==='today'&&days===0)||(period==='week'&&days>=0&&days<7);row.style.display=matchText&&matchDate?'grid':'none';});}
-function showGallerySection(sectionId){
-show('galerie');
-const albumsSection=document.getElementById('gallery-albums-section');if(albumsSection)albumsSection.hidden=true;
-document.querySelectorAll('.gallery-collapsible').forEach(section=>{section.open=section.querySelector('form')?.id===sectionId;section.hidden=section.querySelector('form')?.id!==sectionId;});
-const section=document.getElementById(sectionId)?.closest('.gallery-collapsible');if(section)section.scrollIntoView({behavior:'smooth',block:'start'});
-}
-
-async function renderGallery(){
+function showGallerySection(sectionId){renderGallery(sectionId==='album-form'?'album':'upload');}
+async function renderGallery(mode='albums'){
 const m=document.getElementById('main');
-m.innerHTML=`<section class="formbox"><div class="kicker">FOTOS AUS DER COMMUNITY</div><h2>Bildergalerie</h2><p>Lege eigene Alben an und teile deine Eisenbahnfotos mit der Community.</p><div id="gallery-status" class="notice">Die Galerie wird geladen …</div></section>
-<details class="formbox gallery-collapsible"><summary><h3>📁 Neues Fotoalbum</h3><span class="collapse-hint">Zum Aufklappen klicken</span></summary><form id="album-form"><label>Albumtitel *<input id="album-title" required maxlength="100" placeholder="z. B. Sonderzüge 2026"></label><label>Beschreibung (optional)<textarea id="album-description" rows="2" maxlength="500" placeholder="Worum geht es in diesem Album?"></textarea></label><label>Sichtbarkeit<select id="album-visibility"><option value="members" selected>Nur Mitglieder</option><option value="public">Öffentlich</option></select></label><p class="note">Öffentliche Alben können auch außerhalb der Community über ihren Freigabelink angesehen werden. Die Freigabe kannst du später jederzeit widerrufen.</p><button class="primary" type="submit">Album anlegen</button></form></details>
-<details class="formbox gallery-collapsible"><summary><h3>📷 Fotos hochladen</h3><span class="collapse-hint">Zum Aufklappen klicken</span></summary><form id="photo-form"><div class="gallery-form-grid"><label>Album *<select id="photo-album" required><option value="">Bitte zuerst ein Album auswählen</option></select></label><label>Aufnahmeort (optional)<input id="photo-location" maxlength="160" placeholder="z. B. Bahnhof Gnarrenburg"></label></div><label>Bildunterschrift (optional)<input id="photo-caption" maxlength="250" placeholder="Was ist auf dem Foto zu sehen?"></label><label>Aufnahmedatum (optional)<input id="photo-date" type="datetime-local"></label><label>Bilddateien *<input id="photo-files" type="file" accept="image/jpeg,image/png,image/webp,image/bmp,.raw" multiple required></label><p class="note">Erlaubt sind JPG/JPEG, PNG, WebP, BMP und RAW. Bitte lade nur Fotos hoch, die du teilen möchtest. Standort- und EXIF-Daten werden nicht automatisch veröffentlicht.</p><button class="primary" type="submit">Fotos hochladen</button></form></details>
-<section id="gallery-albums-section" class="formbox"><h3>📁 Fotoalben</h3><p>Wähle ein Album aus, um die darin enthaltenen Fotos anzusehen.</p><div id="gallery-photos" class="gallery-grid"><div class="gallery-empty">Fotos werden geladen …</div></div></section>`;
-const albumForm=document.getElementById('album-form');
-const photoForm=document.getElementById('photo-form');
-albumForm.addEventListener('submit',createPhotoAlbum);
-photoForm.addEventListener('submit',uploadGalleryPhotos);
+const header='<section class="formbox"><div class="kicker">FOTOS AUS DER COMMUNITY</div><h2>Bildergalerie</h2><p>Lege eigene Alben an und teile deine Eisenbahnfotos mit der Community.</p><div id="gallery-status" class="notice">Die Galerie wird geladen …</div></section>';
+const albumForm='<section class="formbox"><h3>📁 Neues Fotoalbum</h3><form id="album-form"><label>Albumtitel *<input id="album-title" required maxlength="100" placeholder="z. B. Sonderzüge 2026"></label><label>Beschreibung (optional)<textarea id="album-description" rows="2" maxlength="500" placeholder="Worum geht es in diesem Album?"></textarea></label><label>Sichtbarkeit<select id="album-visibility"><option value="members" selected>Nur Mitglieder</option><option value="public">Öffentlich</option></select></label><p class="note">Öffentliche Alben können auch außerhalb der Community über ihren Freigabelink angesehen werden. Die Freigabe kannst du später jederzeit widerrufen.</p><button class="primary" type="submit">Album anlegen</button></form></section>';
+const uploadForm='<section class="formbox"><h3>📷 Fotos hochladen</h3><form id="photo-form"><div class="gallery-form-grid"><label>Album *<select id="photo-album" required><option value="">Bitte zuerst ein Album auswählen</option></select></label><label>Aufnahmeort (optional)<input id="photo-location" maxlength="160" placeholder="z. B. Bahnhof Gnarrenburg"></label></div><label>Bildunterschrift (optional)<input id="photo-caption" maxlength="250" placeholder="Was ist auf dem Foto zu sehen?"></label><label>Aufnahmedatum (optional)<input id="photo-date" type="datetime-local"></label><label>Bilddateien *<input id="photo-files" type="file" accept="image/jpeg,image/png,image/webp,image/bmp,.raw" multiple required></label><p class="note">Erlaubt sind JPG/JPEG, PNG, WebP, BMP und RAW. Bitte lade nur Fotos hoch, die du teilen möchtest. Standort- und EXIF-Daten werden nicht automatisch veröffentlicht.</p><button class="primary" type="submit">Fotos hochladen</button></form></section>';
+if(mode==='album')m.innerHTML=header+albumForm;else if(mode==='upload')m.innerHTML=header+uploadForm;else m.innerHTML=header+'<section id="gallery-albums-section" class="formbox"><h3>📁 Fotoalben</h3><p>Wähle ein Album aus, um die darin enthaltenen Fotos anzusehen.</p><div id="gallery-photos" class="gallery-grid"><div class="gallery-empty">Fotos werden geladen …</div></div></section>';
+const albumFormEl=document.getElementById('album-form');const photoFormEl=document.getElementById('photo-form');
+if(albumFormEl)albumFormEl.addEventListener('submit',createPhotoAlbum);if(photoFormEl)photoFormEl.addEventListener('submit',uploadGalleryPhotos);
 await loadGallery();
 }
 async function loadGallery(){
@@ -824,9 +816,8 @@ const currentUserId=currentUser?.id||null;
 const albumSelect=document.getElementById('photo-album');
 const {data:albums,error:albumError}=await supabaseClient.from('photo_albums').select('id,user_id,title,description,visibility,share_token,created_at').order('created_at',{ascending:false});
 if(albumError){status.textContent='Alben konnten nicht geladen werden: '+albumError.message;return;}
-albumSelect.innerHTML='<option value="">Bitte Album auswählen</option>';
-for(const a of (albums||[])){const option=document.createElement('option');option.value=a.id;option.textContent=a.title;albumSelect.appendChild(option);}
-const grid=document.getElementById('gallery-photos');grid.innerHTML='';
+if(albumSelect){albumSelect.innerHTML='<option value="">Bitte Album auswählen</option>';for(const a of (albums||[])){const option=document.createElement('option');option.value=a.id;option.textContent=a.title;albumSelect.appendChild(option);}}
+const grid=document.getElementById('gallery-photos');if(!grid){status.textContent=(albums||[]).length+' Fotoalbum/Fotoalben vorhanden.';return;}grid.innerHTML='';
 const params=new URLSearchParams(location.search);
 const shareToken=params.get('album');
 const albumView=params.get('albumView');
@@ -909,7 +900,7 @@ async function createPhotoAlbum(e){
 e.preventDefault();const {data:{user}}=await supabaseClient.auth.getUser();if(!user){alert('Bitte melde dich zuerst im Mitgliederbereich an.');document.getElementById('anmelden').scrollIntoView({behavior:'smooth'});return;}
 const title=document.getElementById('album-title').value.trim();const description=document.getElementById('album-description').value.trim();const visibility=document.getElementById('album-visibility').value;
 const {error}=await supabaseClient.from('photo_albums').insert({user_id:user.id,title,description:description||null,visibility});
-if(error){alert('Album konnte nicht angelegt werden: '+error.message);return;}e.target.reset();await loadGallery();alert('Dein Fotoalbum wurde angelegt.');
+if(error){alert('Album konnte nicht angelegt werden: '+error.message);return;}e.target.reset();alert('Dein Fotoalbum wurde angelegt.');show('galerie');
 }
 async function uploadGalleryPhotos(e){
 e.preventDefault();const {data:{user}}=await supabaseClient.auth.getUser();if(!user){alert('Bitte melde dich zuerst im Mitgliederbereich an.');document.getElementById('anmelden').scrollIntoView({behavior:'smooth'});return;}
@@ -920,7 +911,7 @@ const submit=e.target.querySelector('button[type="submit"]');submit.disabled=tru
 try{for(const file of files){const safeName=file.name.normalize('NFKD').replace(/[^a-zA-Z0-9._-]/g,'-');const path=user.id+'/'+albumId+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'-'+safeName;
 const {error:uploadError}=await supabaseClient.storage.from('community-photos-private').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type||'application/octet-stream'});if(uploadError)throw uploadError;
 const {error:insertError}=await supabaseClient.from('gallery_photos').insert({album_id:albumId,user_id:user.id,image_url:null,storage_path:path,caption:caption||null,location_name:locationName||null,taken_at:takenAt});if(insertError){await supabaseClient.storage.from('community-photos-private').remove([path]);throw insertError;}}
-e.target.reset();await loadGallery();alert('Deine Fotos wurden erfolgreich hochgeladen.');}
+e.target.reset();alert('Deine Fotos wurden erfolgreich hochgeladen.');show('galerie');}
 catch(error){alert('Beim Hochladen ist ein Fehler aufgetreten: '+error.message);}
 finally{submit.disabled=false;submit.textContent='Fotos hochladen';}
 }
