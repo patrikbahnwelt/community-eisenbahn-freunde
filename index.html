@@ -844,6 +844,21 @@ const settings=document.createElement('div');settings.className='album-settings'
 const label=document.createElement('label');label.textContent='Sichtbarkeit';const select=document.createElement('select');select.innerHTML='<option value="members">Nur Mitglieder</option><option value="public">Öffentlich</option>';select.value=a.visibility||'members';select.addEventListener('change',async()=>{const next=select.value;const {error}=await supabaseClient.from('photo_albums').update({visibility:next}).eq('id',a.id).eq('user_id',currentUserId);if(error){alert('Sichtbarkeit konnte nicht geändert werden: '+error.message);select.value=a.visibility||'members';return;}a.visibility=next;alert(next==='public'?'Album ist jetzt öffentlich.':'Öffentliche Freigabe wurde widerrufen.');await loadGallery();});label.appendChild(select);settings.appendChild(label);
 if(a.visibility==='public'&&a.share_token){const copy=document.createElement('button');copy.type='button';copy.className='secondary';copy.textContent='Album-Link kopieren';copy.addEventListener('click',async()=>{const url=location.origin+location.pathname+'?album='+encodeURIComponent(a.share_token);try{await navigator.clipboard.writeText(url);alert('Album-Link wurde kopiert.');}catch{prompt('Hier ist dein Album-Link:',url);}});settings.appendChild(copy);}
 content.appendChild(settings);
+const removeAlbum=document.createElement('button');removeAlbum.type='button';removeAlbum.className='secondary';removeAlbum.textContent='Album löschen';removeAlbum.style.marginTop='8px';removeAlbum.addEventListener('click',async()=>{
+if(!confirm('Möchtest du das Album „'+a.title+'“ wirklich löschen? Alle darin enthaltenen Fotos werden ebenfalls gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.'))return;
+removeAlbum.disabled=true;removeAlbum.textContent='Wird gelöscht …';
+try{
+const {data:items,error:readError}=await supabaseClient.from('gallery_photos').select('id,storage_path').eq('album_id',a.id);
+if(readError)throw readError;
+const paths=(items||[]).map(item=>item.storage_path).filter(Boolean);
+if(paths.length){const {error:storageError}=await supabaseClient.storage.from('community-photos-private').remove(paths);if(storageError)throw storageError;}
+const {error:photosError}=await supabaseClient.from('gallery_photos').delete().eq('album_id',a.id).eq('user_id',currentUserId);
+if(photosError)throw photosError;
+const {error:albumDeleteError}=await supabaseClient.from('photo_albums').delete().eq('id',a.id).eq('user_id',currentUserId);
+if(albumDeleteError)throw albumDeleteError;
+alert('Das Album und seine Fotos wurden gelöscht.');await loadGallery();
+}catch(error){alert('Das Album konnte nicht vollständig gelöscht werden: '+error.message);removeAlbum.disabled=false;removeAlbum.textContent='Album löschen';}
+});content.appendChild(removeAlbum);
 }
 card.append(cover,content);grid.appendChild(card);
 }
