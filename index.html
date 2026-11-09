@@ -169,6 +169,11 @@ body[data-theme="dark"] .home-latest-item small,body[data-theme="dark"] .home-em
  body:not([data-theme="light"]) .home-latest-item strong{color:#f2f6f8!important}
  body:not([data-theme="light"]) .home-latest-item small,body:not([data-theme="light"]) .home-empty{color:#c2cdd3!important}
 }
+
+.home-sighting-meta{display:block;color:#71838d;font-size:11px;margin-bottom:3px}
+.home-sighting-direction{display:block;font-style:italic;margin-top:2px}
+body[data-theme="dark"] .home-sighting-meta{color:#c2cdd3!important}
+@media(prefers-color-scheme:dark){body:not([data-theme="light"]) .home-sighting-meta{color:#c2cdd3!important}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -250,10 +255,20 @@ box.innerHTML='';
 if(!items||!items.length){box.textContent='Noch keine Einträge vorhanden.';box.className='home-empty';return;}
 for(const item of items){
 const row=document.createElement('div');row.className='home-latest-item';
-const strong=document.createElement('strong');strong.textContent=kind==='sighting'?(item.note||'Sichtungsmeldung'):(item.title||'Beitrag ohne Titel');
-const small=document.createElement('small');
-small.textContent=kind==='sighting'?(item.direction?'→ '+item.direction:''):[item.category,new Date(item.created_at).toLocaleDateString('de-DE')].filter(Boolean).join(' · ');
-row.append(strong,small);box.appendChild(row);
+if(kind==='sighting'){
+ const date=new Date(item.created_at);
+ const meta=document.createElement('small');
+ meta.className='home-sighting-meta';
+ meta.textContent=[date.toLocaleDateString('de-DE'),date.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr',item.station].filter(Boolean).join(' · ');
+ const strong=document.createElement('strong');strong.textContent=item.note||'Sichtungsmeldung';
+ row.append(meta,strong);
+ if(item.direction){const direction=document.createElement('small');direction.className='home-sighting-direction';direction.textContent='→ '+item.direction;row.append(direction);}
+}else{
+ const strong=document.createElement('strong');strong.textContent=item.title||'Beitrag ohne Titel';
+ const small=document.createElement('small');small.textContent=[item.category,new Date(item.created_at).toLocaleDateString('de-DE')].filter(Boolean).join(' · ');
+ row.append(strong,small);
+}
+box.appendChild(row);
 }
 }
 if(sightingsResult.error){sightingBox.textContent='Sichtungen konnten gerade nicht geladen werden.';}else{addItems(sightingBox,sightingsResult.data,'sighting');}
