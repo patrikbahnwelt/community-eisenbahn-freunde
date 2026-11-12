@@ -775,18 +775,36 @@ const el=document.createElement(type==='textarea'?'textarea':'input');
 if(type==='input')el.type='text';el.value=value||'';label.appendChild(el);form.appendChild(label);return el;
 }
 const station=field('Betriebsstelle / Ort',s.station);
+const dateTime=field('Datum und Uhrzeit der Sichtung',new Date(s.created_at).toLocaleString('sv-SE').replace(' ','T').slice(0,16));
+dateTime.type='datetime-local';dateTime.required=true;
 const direction=field('Fahrtrichtung (optional)',s.direction);
 const note=field('Sichtungsmeldung',s.note||[s.train_type,s.train_number].filter(Boolean).join(' · '),'textarea');
+const photoLabel=document.createElement('label');photoLabel.textContent='Fotos hinzufügen oder austauschen (optional)';
+const photoInput=document.createElement('input');photoInput.type='file';photoInput.accept='image/jpeg,image/png,image/webp,image/bmp,image/x-canon-cr2,image/x-nikon-nef,image/x-sony-arw,.raw';photoInput.multiple=true;photoLabel.appendChild(photoInput);form.appendChild(photoLabel);
+const photoHelp=document.createElement('small');photoHelp.textContent='Du kannst später weitere Fotos hochladen. Wenn du neue Fotos auswählst, bleiben vorhandene Fotos standardmäßig erhalten.';form.appendChild(photoHelp);
+const replaceLabel=document.createElement('label');replaceLabel.style.display='flex';replaceLabel.style.alignItems='center';replaceLabel.style.gap='8px';
+const replacePhotos=document.createElement('input');replacePhotos.type='checkbox';replacePhotos.style.width='auto';replaceLabel.append(replacePhotos,document.createTextNode('Vorhandene Fotos durch die neu ausgewählten Fotos ersetzen'));form.appendChild(replaceLabel);
 const controls=document.createElement('div');controls.className='sighting-actions';
 const save=document.createElement('button');save.type='submit';save.className='primary';save.textContent='Änderungen speichern';
 const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Abbrechen';cancel.addEventListener('click',()=>form.remove());
 controls.append(save,cancel);form.appendChild(controls);
 form.addEventListener('submit',async e=>{
 e.preventDefault();const {data:{user}}=await supabaseClient.auth.getUser();
-if(!user){alert('Bitte melde dich erneut an.');return;}
-const {error}=await supabaseClient.from('sightings').update({station:station.value.trim(),direction:direction.value.trim()||null,note:note.value.trim()}).eq('id',s.id).eq('user_id',user.id);
-if(error){alert('Änderung fehlgeschlagen: '+error.message);return;}
+if(!user||user.id!==s.user_id){alert('Bitte melde dich mit deinem Konto an, um diese Sichtung zu bearbeiten.');return;}
+if(!dateTime.value){alert('Bitte Datum und Uhrzeit angeben.');return;}
+const files=[...photoInput.files];for(const file of files){if(file.size>25*1024*1024){alert('Jedes Foto darf maximal 25 MB groß sein.');return;}if(!/^image\/(jpeg|png|webp|bmp)$/i.test(file.type)&&!(/\.(raw|cr2|nef|arw)$/i.test(file.name))){alert('Bitte nur JPG, PNG, WebP, BMP oder RAW-Dateien auswählen.');return;}}
+save.disabled=true;save.textContent='Wird gespeichert …';
+try{
+const existing=Array.isArray(s.photo_urls)?s.photo_urls:[];
+const newPaths=[];
+for(const file of files){const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_'),path=user.id+'/sightings/'+s.id+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'-'+safeName;const {error:uploadError}=await supabaseClient.storage.from('community-photos-private').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type||'application/octet-stream'});if(uploadError)throw uploadError;newPaths.push(path);}
+const nextPhotos=files.length?(replacePhotos.checked?newPaths:[...existing,...newPaths]):existing;
+const {error}=await supabaseClient.from('sightings').update({station:station.value.trim(),created_at:new Date(dateTime.value).toISOString(),direction:direction.value.trim()||null,note:note.value.trim(),photo_urls:nextPhotos}).eq('id',s.id).eq('user_id',user.id);
+if(error){if(newPaths.length)await supabaseClient.storage.from('community-photos-private').remove(newPaths);throw error;}
+if(files.length&&replacePhotos.checked){const oldPaths=existing.filter(path=>typeof path==='string'&&!path.startsWith('http://')&&!path.startsWith('https://'));if(oldPaths.length)await supabaseClient.storage.from('community-photos-private').remove(oldPaths);}
 await loadSightings();alert('Deine Sichtung wurde aktualisiert.');
+}catch(error){alert('Änderung fehlgeschlagen: '+error.message);}
+finally{save.disabled=false;save.textContent='Änderungen speichern';}
 });
 body.appendChild(form);
 }
