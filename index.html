@@ -188,7 +188,7 @@ body[data-theme="dark"] .home-sighting-meta{color:#c2cdd3!important}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<header><div class="brand">🚆 Community für Eisenbahn-Freunde<small>Sehen. Melden. Austauschen.</small></div><nav><label class="theme-control" for="theme-mode" aria-label="Darstellung wählen">Darstellung <select id="theme-mode" onchange="setThemeMode(this.value)"><option value="auto">Automatisch</option><option value="light">Hell</option><option value="dark">Dunkel</option></select></label><span id="auth-status" class="auth-status">Prüfe Anmeldung …</span><button onclick="show('start')">Startseite</button><button onclick="show('sichtungen')">Sichtungen</button><button onclick="show('forum')">Forum</button><button onclick="show('galerie')">Bildergalerie</button><button id="auth-nav-button" onclick="document.getElementById('anmelden').scrollIntoView({behavior:'smooth'})">Mitgliederbereich</button><button id="logout-button" style="display:none" onclick="abmelden()">Abmelden</button></nav></header>
+<header><div class="brand">🚆 Community für Eisenbahn-Freunde<small>Sehen. Melden. Austauschen.</small></div><nav><label class="theme-control" for="theme-mode" aria-label="Darstellung wählen">Darstellung <select id="theme-mode" onchange="setThemeMode(this.value)"><option value="auto">Automatisch</option><option value="light">Hell</option><option value="dark">Dunkel</option></select></label><span id="auth-status" class="auth-status">Prüfe Anmeldung …</span><button onclick="show('start')">Startseite</button><button onclick="show('sichtungen')">Sichtungen</button><button onclick="show('galerie')">Bildergalerie</button><button id="auth-nav-button" onclick="document.getElementById('anmelden').scrollIntoView({behavior:'smooth'})">Mitgliederbereich</button><button id="logout-button" style="display:none" onclick="abmelden()">Abmelden</button></nav></header>
 <section id="anmelden" class="formbox auth-panel">
   <div><div class="kicker">MITGLIEDERBEREICH</div><h2>Schön, dass du dabei bist!</h2><p>Hier kannst du dich anmelden oder ein neues Konto erstellen.</p></div>
   <div class="auth-fields">
@@ -198,7 +198,7 @@ body[data-theme="dark"] .home-sighting-meta{color:#c2cdd3!important}
   </div>
 </section>
 <section class="hero"><div><div class="kicker">DIE COMMUNITY FÜR EISENBAHN-BEGEISTERTE</div><h1>Die Eisenbahn im Blick.<br><em>Gemeinsam unterwegs.</em></h1><p>Teile aktuelle Sichtungen, entdecke besondere Züge und tausche dich mit anderen Eisenbahn-Freunden aus.</p><button class="primary" onclick="show('sichtungen');document.getElementById('newform').scrollIntoView({behavior:'smooth'})">＋ Sichtung melden</button></div></section>
-<div class="wrap"><aside><div class="kicker">COMMUNITY</div><button class="active" id="nav-start" onclick="show('start')">🏠 Startseite</button><button id="nav-sichtungen" onclick="show('sichtungen')">🚆 Sichtungen</button><button id="nav-forum" onclick="show('forum')">💬 Forum</button><button id="nav-galerie" onclick="show('galerie')">📷 Bildergalerie</button><div id="gallery-subnav" class="gallery-subnav" hidden><button type="button" onclick="showGallerySection('album-form')">📁 Neues Fotoalbum</button><button type="button" onclick="showGallerySection('photo-form')">📤 Fotos hochladen</button></div><button onclick="alert('Mitgliederprofile folgen mit der Anmeldung.')">👥 Mitglieder</button><div class="notice">Fair miteinander: Unsere Community lebt von Respekt, guten Sichtungen und der Freude an der Eisenbahn.</div></aside>
+<div class="wrap"><aside><div class="kicker">COMMUNITY</div><button class="active" id="nav-start" onclick="show('start')">🏠 Startseite</button><button id="nav-sichtungen" onclick="show('sichtungen')">🚆 Sichtungen</button><button id="nav-galerie" onclick="show('galerie')">📷 Bildergalerie</button><div id="gallery-subnav" class="gallery-subnav" hidden><button type="button" onclick="showGallerySection('album-form')">📁 Neues Fotoalbum</button><button type="button" onclick="showGallerySection('photo-form')">📤 Fotos hochladen</button></div><button onclick="alert('Mitgliederprofile folgen mit der Anmeldung.')">👥 Mitglieder</button><div class="notice">Fair miteinander: Unsere Community lebt von Respekt, guten Sichtungen und der Freude an der Eisenbahn.</div></aside>
 <main id="main"><div class="heading"><div><div class="kicker">LIVE AUS DER COMMUNITY</div><h2>Aktuelle Sichtungen</h2><p>Kompakte Meldungen mit offiziellen DB-Betriebsstellen und Diskussionen.</p></div></div>
 <details class="formbox sighting-form-collapse" id="newform"><summary><span>＋ Sichtung eintragen</span><small>Formular zum Melden einer neuen Sichtung öffnen oder schließen</small></summary><div class="sighting-form-content"><div class="kicker">NEUE MELDUNG</div><form onsubmit="addSighting(event)">
 <label>Betriebsstelle suchen *<input id="station" required autocomplete="off" placeholder="Kürzel oder Bahnhof eingeben …" oninput="searchBetriebsstellen()"><input type="hidden" id="bst-code"><div id="station-suggestions" class="station-suggestions"></div><small id="station-selected" class="field-hint">Bitte eine Betriebsstelle aus den offiziellen Treffern auswählen.</small></label>
@@ -239,7 +239,7 @@ let m=document.getElementById('main');m.style.display='block';
 if(page==='start'){renderHome();return}
 if(page==='sichtungen'){m.innerHTML=window.sightingsMarkup||m.innerHTML;loadSightings();return}
 if(page==='galerie'){renderGallery();return}
-if(page==='forum'){renderForum();return}
+
 
 m.innerHTML='<section class="formbox"><h2>Bereich</h2></section>';
 }
@@ -247,44 +247,26 @@ m.innerHTML='<section class="formbox"><h2>Bereich</h2></section>';
 
 
 async function renderHome(){
-const m=document.getElementById('main');
-m.innerHTML=`<section><div class="heading"><div><div class="kicker">SCHÖN, DASS DU DA BIST</div><h2>Willkommen in der Community!</h2><p>Hier treffen sich Eisenbahn-Freunde zum Entdecken, Melden und Austauschen.</p></div></div>
-<div class="home-tiles">
-<button class="home-tile home-tile-image" onclick="show('sichtungen')"><img src="sichtungen-kachel.jpg" alt="" loading="lazy"><span class="home-tile-copy"><strong>🚆 Sichtungen</strong><small>Aktuelle Züge und Beobachtungen entdecken</small></span></button>
-<button class="home-tile home-tile-image" onclick="show('forum')"><img src="forum-kachel.jpg" alt="" loading="lazy"><span class="home-tile-copy"><strong>💬 Forum</strong><small>Fragen stellen und mitdiskutieren</small></span></button>
-<button class="home-tile home-tile-image" onclick="show('galerie')"><img src="galerie-kachel.jpg" alt="" loading="lazy"><span class="home-tile-copy"><strong>📸 Bildergalerie</strong><small>Eisenbahnfotos ansehen und teilen</small></span></button>
-
-</div></section>
-<div class="home-columns"><section class="home-latest"><h3>🚆 Die letzten 5 Sichtungen</h3><div id="home-sightings" class="home-empty">Wird geladen …</div></section><section class="home-latest"><h3>💬 Neueste 5 Forenbeiträge</h3><div id="home-posts" class="home-empty">Wird geladen …</div></section></div>`;
-const sightingBox=document.getElementById('home-sightings');
-const postBox=document.getElementById('home-posts');
-const [sightingsResult,postsResult]=await Promise.all([
-supabaseClient.from('sightings').select('station,note,direction,created_at').order('created_at',{ascending:false}).limit(5),
-supabaseClient.from('forum_posts').select('title,category,created_at').order('created_at',{ascending:false}).limit(5)
-]);
-function addItems(box,items,kind){
-box.innerHTML='';
-if(!items||!items.length){box.textContent='Noch keine Einträge vorhanden.';box.className='home-empty';return;}
-for(const item of items){
-const row=document.createElement('div');row.className='home-latest-item';
-if(kind==='sighting'){
- const date=new Date(item.created_at);
- const meta=document.createElement('small');
- meta.className='home-sighting-meta';
- meta.textContent=[date.toLocaleDateString('de-DE'),date.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr',item.station].filter(Boolean).join(' · ');
- const strong=document.createElement('strong');strong.textContent=item.note||'Sichtungsmeldung';
- row.append(meta,strong);
- if(item.direction){const direction=document.createElement('small');direction.className='home-sighting-direction';direction.textContent='→ '+item.direction;row.append(direction);}
-}else{
- const strong=document.createElement('strong');strong.textContent=item.title||'Beitrag ohne Titel';
- const small=document.createElement('small');small.textContent=[item.category,new Date(item.created_at).toLocaleDateString('de-DE')].filter(Boolean).join(' · ');
- row.append(strong,small);
-}
-box.appendChild(row);
-}
-}
-if(sightingsResult.error){sightingBox.textContent='Sichtungen konnten gerade nicht geladen werden.';}else{addItems(sightingBox,sightingsResult.data,'sighting');}
-if(postsResult.error){postBox.textContent='Forenbeiträge konnten gerade nicht geladen werden.';}else{addItems(postBox,postsResult.data,'post');}
+ const m=document.getElementById('main');
+ m.innerHTML=`<section><div class="heading"><div><div class="kicker">SCHÖN, DASS DU DA BIST</div><h2>Willkommen in der Community!</h2><p>Hier dreht sich alles um aktuelle Eisenbahnsichtungen und besondere Eisenbahnfotos.</p></div></div>
+ <div class="home-tiles">
+ <button class="home-tile home-tile-image" onclick="show('sichtungen')"><img src="sichtungen-kachel.jpg" alt="" loading="lazy"><span class="home-tile-copy"><strong>🚆 Sichtungen</strong><small>Aktuelle Züge und Beobachtungen entdecken</small></span></button>
+ <button class="home-tile home-tile-image" onclick="show('galerie')"><img src="galerie-kachel.jpg" alt="" loading="lazy"><span class="home-tile-copy"><strong>📸 Bildergalerie</strong><small>Eisenbahnfotos ansehen und teilen</small></span></button>
+ </div></section>
+ <div class="home-columns"><section class="home-latest"><h3>🚆 Die letzten 5 Sichtungen</h3><div id="home-sightings" class="home-empty">Wird geladen …</div></section></div>`;
+ const sightingBox=document.getElementById('home-sightings');
+ const {data:sightings,error}=await supabaseClient.from('sightings').select('station,note,direction,created_at').order('created_at',{ascending:false}).limit(5);
+ if(error){sightingBox.textContent='Sichtungen konnten gerade nicht geladen werden.';return;}
+ sightingBox.innerHTML='';
+ if(!sightings?.length){sightingBox.textContent='Noch keine Sichtungen vorhanden.';return;}
+ for(const item of sightings){
+  const row=document.createElement('div');row.className='home-latest-item';
+  const date=new Date(item.created_at),meta=document.createElement('small');meta.className='home-sighting-meta';
+  meta.textContent=[date.toLocaleDateString('de-DE'),date.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr',item.station].filter(Boolean).join(' · ');
+  const strong=document.createElement('strong');strong.textContent=item.note||'Sichtungsmeldung';row.append(meta,strong);
+  if(item.direction){const direction=document.createElement('small');direction.className='home-sighting-direction';direction.textContent='→ '+item.direction;row.append(direction);}
+  sightingBox.appendChild(row);
+ }
 }
 
 async function renderAdmin(){
