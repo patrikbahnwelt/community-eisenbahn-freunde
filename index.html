@@ -184,6 +184,40 @@ body[data-theme="dark"] .home-latest-item small,body[data-theme="dark"] .home-em
 body[data-theme="dark"] .home-sighting-meta{color:#c2cdd3!important}
 @media(prefers-color-scheme:dark){body:not([data-theme="light"]) .home-sighting-meta{color:#c2cdd3!important}}
 .sighting-form-collapse{margin:0 0 18px}.sighting-form-collapse>summary{cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;font-weight:700;color:var(--text);padding:2px 0}.sighting-form-collapse>summary::-webkit-details-marker{display:none}.sighting-form-collapse>summary:after{content:'＋';margin-left:auto;color:var(--accent);font-size:1.25rem}.sighting-form-collapse[open]>summary:after{content:'−'}.sighting-form-collapse>summary span{font-size:1.05rem}.sighting-form-collapse>summary small{font-weight:400;color:var(--muted)}.sighting-form-content{padding-top:16px}
+
+/* Titelbereich: Überschrift zentriert im freien Himmel */
+.hero{
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  text-align:center;
+  padding:48px 24px 40px;
+  background-position:center 58%;
+}
+.hero>div:first-child{
+  width:100%;
+  max-width:900px;
+  margin:0 auto;
+}
+.hero h1,
+.hero p{
+  margin-left:auto;
+  margin-right:auto;
+}
+.hero h1{
+  text-shadow:0 2px 9px rgba(0,0,0,.48);
+}
+.hero p{
+  text-shadow:0 1px 6px rgba(0,0,0,.55);
+}
+@media(max-width:700px){
+  .hero{
+    min-height:390px;
+    padding:34px 20px 38px;
+    background-position:center 58%;
+  }
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
