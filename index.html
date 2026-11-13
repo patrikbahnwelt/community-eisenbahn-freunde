@@ -623,13 +623,13 @@ async function renderMembers(){
  if(ownError||ownProfile?.role!=='admin'){m.innerHTML='<section class="formbox"><h2>Kein Zugriff</h2><p>Dieser Bereich ist nur für Administratoren.</p></section>';return;}
  m.innerHTML='<section class="formbox"><div class="kicker">ADMINISTRATION</div><h2>Mitgliederverwaltung</h2><p>Übersicht aller registrierten Community-Mitglieder.</p><div id="members-status" class="notice">Mitglieder werden geladen …</div><div id="members-list"></div></section>';
  const status=document.getElementById('members-status'),list=document.getElementById('members-list');
- const {data:members,error}=await supabaseClient.from('profiles').select('id,username,role').order('username',{ascending:true});
- if(error){status.textContent='Mitglieder konnten nicht geladen werden: '+error.message;return;}
+ const {data:members,error}=await supabaseClient.rpc('admin_list_member_profiles');
+ if(error){status.textContent='Mitglieder konnten nicht geladen werden. Bitte prüfe, ob die geschützte Admin-Abfrage in Supabase eingerichtet wurde. Details: '+error.message;return;}
  status.textContent=(members||[]).length+' Mitglieder gefunden.';
  if(!members?.length){list.textContent='Noch keine Mitglieder vorhanden.';return;}
  for(const member of members){
   const row=document.createElement('div');row.className='member-admin-row';row.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--line,#dce4e7)';
-  const identity=document.createElement('div');const name=document.createElement('strong');name.textContent=member.username||'Mitglied ohne Benutzernamen';const detail=document.createElement('small');detail.style.cssText='display:block;opacity:.7;margin-top:3px';detail.textContent=member.role==='admin'?'Administrator':'Mitglied';identity.append(name,detail);row.appendChild(identity);list.appendChild(row);
+  const identity=document.createElement('div');const name=document.createElement('strong');name.textContent=[member.first_name,member.last_name].filter(Boolean).join(' ')||member.email||member.username||'Mitglied';const detail=document.createElement('small');detail.style.cssText='display:block;opacity:.7;margin-top:3px';detail.textContent=[member.username,member.role==='admin'?'Administrator':'Mitglied'].filter(Boolean).join(' · ');identity.append(name,detail);row.appendChild(identity);list.appendChild(row);
  }
 }
 async function renderAdmin(){
