@@ -481,7 +481,7 @@ body[data-theme="dark"] #cards .sighting-author{
   </div>
 </section>
 <section class="hero"><div><div class="kicker">DIE COMMUNITY FÜR EISENBAHN-BEGEISTERTE</div><h1>Die Eisenbahn im Blick.<br><em>Gemeinsam unterwegs.</em></h1></div></section>
-<div class="wrap"><aside><div class="kicker">COMMUNITY</div><button class="active" id="nav-start" onclick="show('start')">🏠 Startseite</button><button id="nav-sichtungen" onclick="show('sichtungen')">🚆 Sichtungen</button><button id="nav-galerie" onclick="show('galerie')">📷 Bildergalerie</button><div id="gallery-subnav" class="gallery-subnav" hidden><button type="button" onclick="showGallerySection('album-form')">📁 Neues Fotoalbum</button><button type="button" onclick="showGallerySection('photo-form')">📤 Fotos hochladen</button></div><button id="nav-mitglieder" onclick="show('mitglieder')" hidden>👥 Mitgliederverwaltung</button><div class="notice">Fair miteinander: Unsere Community lebt von Respekt, guten Sichtungen und der Freude an der Eisenbahn.</div></aside>
+<div class="wrap"><aside><div class="kicker">COMMUNITY</div><button class="active" id="nav-start" onclick="show('start')">🏠 Startseite</button><button id="nav-sichtungen" onclick="show('sichtungen')">🚆 Sichtungen</button><button id="nav-galerie" onclick="show('galerie')">📷 Bildergalerie</button><div id="gallery-subnav" class="gallery-subnav" hidden><button type="button" onclick="showGallerySection('album-form')">📁 Neues Fotoalbum</button><button type="button" onclick="showGallerySection('photo-form')">📤 Fotos hochladen</button></div><button id="nav-mitglieder" onclick="show('mitglieder')" hidden>👥 Mitglieder</button><button id="nav-mein-profil" onclick="show('mein-profil')" hidden>👤 Mein Profil</button><button id="nav-mitgliederverwaltung" onclick="show('mitgliederverwaltung')" hidden>⚙️ Mitgliederverwaltung</button><div class="notice">Fair miteinander: Unsere Community lebt von Respekt, guten Sichtungen und der Freude an der Eisenbahn.</div></aside>
 <main id="main"><div class="heading"><div><div class="kicker">LIVE AUS DER COMMUNITY</div><h2>Aktuelle Sichtungen</h2><p>Kompakte Meldungen mit offiziellen DB-Betriebsstellen und Diskussionen.</p></div></div>
 <details class="formbox sighting-form-collapse" id="newform"><summary><span>＋ Sichtung eintragen</span><small>Formular zum Melden einer neuen Sichtung öffnen oder schließen</small></summary><div class="sighting-form-content"><div class="kicker">NEUE MELDUNG</div><form onsubmit="addSighting(event)">
 <label>Betriebsstelle suchen *<input id="station" required autocomplete="off" placeholder="Kürzel oder Bahnhof eingeben …" oninput="searchBetriebsstellen()"><input type="hidden" id="bst-code"><div id="station-suggestions" class="station-suggestions"></div><small id="station-selected" class="field-hint">Bitte eine Betriebsstelle aus den offiziellen Treffern auswählen.</small></label>
@@ -523,7 +523,9 @@ let m=document.getElementById('main');m.style.display='block';
 if(page==='start'){renderHome();return}
 if(page==='sichtungen'){m.innerHTML=window.sightingsMarkup||m.innerHTML;loadSightings();return}
 if(page==='galerie'){renderGallery();return}
-if(page==='mitglieder'){renderMembers();return}
+if(page==='mitglieder'){renderMemberDirectory();return}
+if(page==='mein-profil'){renderMyProfile();return}
+if(page==='mitgliederverwaltung'){renderMembers();return}
 
 m.innerHTML='<section class="formbox"><h2>Bereich</h2></section>';
 }
@@ -554,12 +556,65 @@ async function renderHome(){
 }
 
 async function updateMemberNav(){
- const button=document.getElementById('nav-mitglieder');if(!button)return;
- button.hidden=true;
+ const directory=document.getElementById('nav-mitglieder'),mine=document.getElementById('nav-mein-profil'),admin=document.getElementById('nav-mitgliederverwaltung');
+ if(!directory||!mine||!admin)return;
+ directory.hidden=true;mine.hidden=true;admin.hidden=true;
  const {data:{user}}=await supabaseClient.auth.getUser();if(!user)return;
+ directory.hidden=false;mine.hidden=false;
  const {data:profile,error}=await supabaseClient.from('profiles').select('role').eq('id',user.id).single();
- if(!error&&profile?.role==='admin')button.hidden=false;
+ if(!error&&profile?.role==='admin')admin.hidden=false;
 }
+function memberText(value){return String(value||'').trim();}
+function appendProfileLink(container,label,value){
+ const raw=memberText(value);if(!raw)return;
+ try{const url=new URL(raw);if(!['http:','https:'].includes(url.protocol))return;const a=document.createElement('a');a.href=url.href;a.target='_blank';a.rel='noopener noreferrer';a.textContent=label; a.style.cssText='display:inline-block;margin:4px 8px 4px 0';container.appendChild(a);}catch(e){}
+}
+async function renderMemberDirectory(){
+ const m=document.getElementById('main'),{data:{user}}=await supabaseClient.auth.getUser();
+ if(!user){m.innerHTML='<section class="formbox"><h2>Mitglieder</h2><p>Bitte melde dich an, um Mitgliederprofile zu sehen.</p></section>';return;}
+ m.innerHTML='<section class="formbox"><div class="kicker">COMMUNITY</div><h2>Mitglieder</h2><p>Entdecke die Menschen hinter den Sichtungen und Eisenbahnfotos.</p><div id="directory-status" class="notice">Mitglieder werden geladen …</div><div id="directory-list"></div></section>';
+ const status=document.getElementById('directory-status'),list=document.getElementById('directory-list');
+ const {data:members,error}=await supabaseClient.from('profiles').select('id,username,first_name,last_name,location,about_me,role').order('username',{ascending:true});
+ if(error){status.textContent='Mitglieder konnten nicht geladen werden: '+error.message;return;}
+ status.textContent=(members||[]).length+' Mitglieder';
+ for(const member of members||[]){
+  const card=document.createElement('article');card.className='formbox';card.style.cssText='margin:12px 0;padding:14px';
+  const name=document.createElement('h3');name.textContent=[member.first_name,member.last_name].filter(Boolean).join(' ')||member.username||'Mitglied';card.appendChild(name);
+  const meta=document.createElement('small');meta.style.opacity='.75';meta.textContent=[member.username,member.location,member.role==='admin'?'Administrator':'Mitglied'].filter(Boolean).join(' · ');card.appendChild(meta);
+  if(member.about_me){const about=document.createElement('p');about.textContent=member.about_me.length>180?member.about_me.slice(0,180)+'…':member.about_me;card.appendChild(about);}
+  const open=document.createElement('button');open.type='button';open.className='primary';open.textContent='Profil ansehen';open.addEventListener('click',()=>renderMemberProfile(member.id));card.appendChild(open);list.appendChild(card);
+ }
+ if(!members?.length)list.textContent='Noch keine Mitgliederprofile vorhanden.';
+}
+async function renderMemberProfile(profileId){
+ const m=document.getElementById('main'),{data:{user}}=await supabaseClient.auth.getUser();
+ if(!user){m.innerHTML='<section class="formbox"><h2>Kein Zugriff</h2><p>Bitte melde dich an.</p></section>';return;}
+ const {data:p,error}=await supabaseClient.from('profiles').select('id,username,first_name,last_name,location,instagram_url,facebook_url,youtube_url,tiktok_url,website_url,about_me,role').eq('id',profileId).single();
+ if(error||!p){m.innerHTML='<section class="formbox"><h2>Profil nicht gefunden</h2><p>Dieses Profil kann nicht angezeigt werden.</p><button onclick="renderMemberDirectory()">Zur Mitgliederübersicht</button></section>';return;}
+ m.innerHTML='<section class="formbox"><div class="kicker">MITGLIEDERPROFIL</div><h2 id="profile-view-name"></h2><p id="profile-view-meta"></p><h3>Über mich</h3><p id="profile-view-about"></p><h3>Social Media & Webseiten</h3><div id="profile-view-links"></div><button type="button" onclick="renderMemberDirectory()">← Zur Mitgliederübersicht</button></section>';
+ document.getElementById('profile-view-name').textContent=[p.first_name,p.last_name].filter(Boolean).join(' ')||p.username||'Mitglied';
+ document.getElementById('profile-view-meta').textContent=[p.username,p.location,p.role==='admin'?'Administrator':'Mitglied'].filter(Boolean).join(' · ');
+ document.getElementById('profile-view-about').textContent=p.about_me||'Dieses Mitglied hat noch keinen Über-mich-Text eingetragen.';
+ const links=document.getElementById('profile-view-links');appendProfileLink(links,'Instagram',p.instagram_url);appendProfileLink(links,'Facebook',p.facebook_url);appendProfileLink(links,'YouTube',p.youtube_url);appendProfileLink(links,'TikTok',p.tiktok_url);appendProfileLink(links,'Webseite',p.website_url);
+ if(!links.childElementCount)links.textContent='Keine Links eingetragen.';
+}
+async function renderMyProfile(){
+ const m=document.getElementById('main'),{data:{user}}=await supabaseClient.auth.getUser();
+ if(!user){m.innerHTML='<section class="formbox"><h2>Mein Profil</h2><p>Bitte melde dich an.</p></section>';return;}
+ const {data:p,error}=await supabaseClient.from('profiles').select('username,first_name,last_name,location,instagram_url,facebook_url,youtube_url,tiktok_url,website_url,about_me').eq('id',user.id).single();
+ if(error||!p){m.innerHTML='<section class="formbox"><h2>Profil nicht verfügbar</h2><p>Dein Profil konnte nicht geladen werden: '+(error?.message||'Unbekannter Fehler')+'</p></section>';return;}
+ m.innerHTML='<section class="formbox"><div class="kicker">DEIN COMMUNITY-PROFIL</div><h2>Mein Profil bearbeiten</h2><p>Alle Angaben sind freiwillig. Nur angemeldete Mitglieder können dein Profil sehen.</p><form id="my-profile-form"><label>Vorname<input id="profile-first-name" maxlength="80"></label><label>Nachname<input id="profile-last-name" maxlength="80"></label><label>Wohnort<input id="profile-location" maxlength="120"></label><label>Instagram-Link<input id="profile-instagram" type="url" placeholder="https://…"></label><label>Facebook-Link<input id="profile-facebook" type="url" placeholder="https://…"></label><label>YouTube-Link<input id="profile-youtube" type="url" placeholder="https://…"></label><label>TikTok-Link<input id="profile-tiktok" type="url" placeholder="https://…"></label><label>Weitere Webseite<input id="profile-website" type="url" placeholder="https://…"></label><label>Über mich<textarea id="profile-about" rows="6" maxlength="2000" placeholder="Erzähl etwas über dich und deine Eisenbahnleidenschaft …"></textarea></label><button class="primary" type="submit">Profil speichern</button><span id="profile-save-status" role="status"></span></form></section>';
+ const fields={ 'profile-first-name':p.first_name,'profile-last-name':p.last_name,'profile-location':p.location,'profile-instagram':p.instagram_url,'profile-facebook':p.facebook_url,'profile-youtube':p.youtube_url,'profile-tiktok':p.tiktok_url,'profile-website':p.website_url,'profile-about':p.about_me};
+ for(const [id,value] of Object.entries(fields))document.getElementById(id).value=value||'';
+ document.getElementById('my-profile-form').addEventListener('submit',async e=>{
+  e.preventDefault();const status=document.getElementById('profile-save-status'),btn=e.currentTarget.querySelector('button[type=submit]');btn.disabled=true;status.textContent='Wird gespeichert …';
+  const value=id=>document.getElementById(id).value.trim()||null;
+  const payload={first_name:value('profile-first-name'),last_name:value('profile-last-name'),location:value('profile-location'),instagram_url:value('profile-instagram'),facebook_url:value('profile-facebook'),youtube_url:value('profile-youtube'),tiktok_url:value('profile-tiktok'),website_url:value('profile-website'),about_me:value('profile-about')};
+  const {error:saveError}=await supabaseClient.from('profiles').update(payload).eq('id',user.id);
+  btn.disabled=false;if(saveError){status.textContent='Fehler beim Speichern: '+saveError.message;return;}status.textContent='✓ Dein Profil wurde gespeichert.';
+ });
+}
+
 async function renderMembers(){
  const m=document.getElementById('main');
  const {data:{user}}=await supabaseClient.auth.getUser();
