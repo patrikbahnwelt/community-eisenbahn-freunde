@@ -662,15 +662,15 @@ async function saveMemberRole(memberId,newRole,button){
  await renderMembers();
 }
 async function manageMemberAccess(memberId,email,button){
- const action=prompt('Mitgliedszugang verwalten für '+(email||'dieses Mitglied')+'.\n\nGib SPERREN oder FREISCHALTEN ein:');
- if(!action)return;
- const normalized=action.trim().toLocaleUpperCase('de');
- if(!['SPERREN','FREISCHALTEN'].includes(normalized)){alert('Bitte exakt SPERREN oder FREISCHALTEN eingeben.');return;}
- const operation=normalized==='SPERREN'?'ban':'unban';
+ const choice=prompt('Zugang für '+(email||'dieses Mitglied')+' verwalten:\n\n1 = Mitglied sperren\n2 = Mitglied freischalten\n\nBitte 1 oder 2 eingeben:');
+ if(choice===null)return;
+ const normalized=choice.trim();
+ if(!['1','2'].includes(normalized)){alert('Bitte 1 für Sperren oder 2 für Freischalten eingeben.');return;}
+ const operation=normalized==='1'?'ban':'unban';
  if(!confirm('Möchtest du den Zugang dieses Mitglieds wirklich '+(operation==='ban'?'sperren':'wieder freischalten')+'?'))return;
  button.disabled=true;button.textContent='Bitte warten …';
  const {data,error}=await supabaseClient.functions.invoke('admin-manage-member-access',{body:{target_user_id:memberId,action:operation}});
- if(error||data?.error){alert('Die Änderung konnte nicht ausgeführt werden. Bitte prüfe, ob die geschützte Supabase-Funktion eingerichtet ist. '+(data?.error||error?.message||''));button.disabled=false;button.textContent='Zugang verwalten';return;}
+ if(error||data?.error){alert('Die Änderung konnte nicht ausgeführt werden. '+(data?.error||error?.message||''));button.disabled=false;button.textContent='Zugang verwalten';return;}
  alert(operation==='ban'?'Der Mitgliedszugang wurde gesperrt.':'Der Mitgliedszugang wurde wieder freigeschaltet.');
  button.disabled=false;button.textContent='Zugang verwalten';
 }
