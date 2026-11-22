@@ -630,16 +630,28 @@ async function renderMembers(){
  if(!user){m.innerHTML='<section class="formbox"><h2>Kein Zugriff</h2><p>Bitte melde dich mit einem Administratorkonto an.</p></section>';return;}
  const {data:ownProfile,error:ownError}=await supabaseClient.from('profiles').select('role').eq('id',user.id).single();
  if(ownError||ownProfile?.role!=='admin'){m.innerHTML='<section class="formbox"><h2>Kein Zugriff</h2><p>Dieser Bereich ist nur für Administratoren.</p></section>';return;}
- m.innerHTML='<section class="formbox"><button type="button" onclick="show(\'administration\')">← Zur Verwaltungszentrale</button><div class="kicker">ADMINISTRATION</div><h2>Mitgliederverwaltung</h2><p>Übersicht aller registrierten Community-Mitglieder.</p><div id="members-status" class="notice">Mitglieder werden geladen …</div><div id="members-list"></div></section>';
+ m.innerHTML='<section class="formbox"><button type="button" onclick="show(\'administration\')">← Zur Verwaltungszentrale</button><div class="kicker">ADMINISTRATION</div><h2>Mitgliederverwaltung</h2><p>Mitglieder ansehen und ihre Berechtigung als Mitglied oder Administrator verwalten.</p><div id="members-status" class="notice">Mitglieder werden geladen …</div><div id="members-list"></div></section>';
  const status=document.getElementById('members-status'),list=document.getElementById('members-list');
  const {data:members,error}=await supabaseClient.rpc('admin_list_member_profiles');
- if(error){status.textContent='Mitglieder konnten nicht geladen werden. Bitte prüfe, ob die geschützte Admin-Abfrage in Supabase eingerichtet wurde. Details: '+error.message;return;}
+ if(error){status.textContent='Mitglieder konnten nicht geladen werden. Details: '+error.message;return;}
  status.textContent=(members||[]).length+' Mitglieder gefunden.';
  if(!members?.length){list.textContent='Noch keine Mitglieder vorhanden.';return;}
  for(const member of members){
   const row=document.createElement('div');row.className='member-admin-row';row.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--line,#dce4e7)';
-  const identity=document.createElement('div');const name=document.createElement('strong');name.textContent=[member.first_name,member.last_name].filter(Boolean).join(' ')||member.email||member.username||'Mitglied';const detail=document.createElement('small');detail.style.cssText='display:block;opacity:.7;margin-top:3px';detail.textContent=[member.username,member.role==='admin'?'Administrator':'Mitglied'].filter(Boolean).join(' · ');identity.append(name,detail);row.appendChild(identity);list.appendChild(row);
+  const identity=document.createElement('div');const name=document.createElement('strong');name.textContent=[member.first_name,member.last_name].filter(Boolean).join(' ')||member.email||member.username||'Mitglied';const detail=document.createElement('small');detail.style.cssText='display:block;opacity:.7;margin-top:3px';detail.textContent=[member.username,member.email,member.role==='admin'?'Administrator':'Mitglied'].filter(Boolean).join(' · ');identity.append(name,detail);
+  const controls=document.createElement('div');controls.style.cssText='display:flex;gap:7px;align-items:center;flex-wrap:wrap';
+  const role=document.createElement('select');role.setAttribute('aria-label','Rolle für '+name.textContent);role.style.cssText='padding:8px;border:1px solid var(--line,#cbd6da);border-radius:7px;font:inherit';role.innerHTML='<option value="member">Mitglied</option><option value="admin">Administrator</option>';role.value=member.role==='admin'?'admin':'member';role.disabled=member.id===user.id;
+  const save=document.createElement('button');save.type='button';save.className='primary';save.textContent='Rolle speichern';save.disabled=member.id===user.id;save.title=member.id===user.id?'Die eigene Rolle kann hier nicht geändert werden.':'Änderung speichern';save.addEventListener('click',()=>saveMemberRole(member.id,role.value,save));
+  controls.append(role,save);row.append(identity,controls);list.appendChild(row);
  }
+}
+async function saveMemberRole(memberId,newRole,button){
+ if(!['member','admin'].includes(newRole))return;
+ if(!confirm('Möchtest du die Rolle dieses Mitglieds wirklich auf "'+(newRole==='admin'?'Administrator':'Mitglied')+'" setzen?'))return;
+ button.disabled=true;button.textContent='Speichere …';
+ const {error}=await supabaseClient.rpc('admin_set_member_role',{target_user_id:memberId,new_role:newRole});
+ if(error){alert('Rolle konnte nicht geändert werden: '+error.message);button.disabled=false;button.textContent='Rolle speichern';return;}
+ await renderMembers();
 }
 async function renderAdmin(){
  const m=document.getElementById('main');
