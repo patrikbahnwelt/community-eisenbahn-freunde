@@ -630,7 +630,7 @@ async function renderMembers(){
  if(!user){m.innerHTML='<section class="formbox"><h2>Kein Zugriff</h2><p>Bitte melde dich mit einem Administratorkonto an.</p></section>';return;}
  const {data:ownProfile,error:ownError}=await supabaseClient.from('profiles').select('role').eq('id',user.id).single();
  if(ownError||ownProfile?.role!=='admin'){m.innerHTML='<section class="formbox"><h2>Kein Zugriff</h2><p>Dieser Bereich ist nur für Administratoren.</p></section>';return;}
- m.innerHTML='<section class="formbox"><button type="button" onclick="show(\'administration\')">← Zur Verwaltungszentrale</button><div class="kicker">ADMINISTRATION</div><h2>Mitgliederverwaltung</h2><p>Mitglieder ansehen und ihre Berechtigung als Mitglied oder Administrator verwalten.</p><div id="members-status" class="notice">Mitglieder werden geladen …</div><input id="member-search" type="search" placeholder="Mitglied nach Name, Benutzername oder E-Mail suchen …" aria-label="Mitglieder suchen" style="width:100%;padding:12px;border:1px solid var(--line,#cbd6da);border-radius:8px;font:inherit;margin:12px 0"><div id="members-list"></div></section>';
+ m.innerHTML='<section class="formbox"><button type="button" onclick="show(\'administration\')">← Zur Verwaltungszentrale</button><div class="kicker">ADMINISTRATION</div><h2>Mitgliederverwaltung</h2><p>Mitglieder, Rollen und Zugang verwalten. Neue Mitglieder sind standardmäßig freigeschaltet.</p><div id="members-status" class="notice">Mitglieder werden geladen …</div><input id="member-search" type="search" placeholder="Mitglied nach Name, Benutzername oder E-Mail suchen …" aria-label="Mitglieder suchen" style="width:100%;padding:12px;border:1px solid var(--line,#cbd6da);border-radius:8px;font:inherit;margin:12px 0"><div id="members-list"></div></section>';
  const status=document.getElementById('members-status'),list=document.getElementById('members-list'),search=document.getElementById('member-search');
  const {data:members,error}=await supabaseClient.rpc('admin_list_member_profiles');
  if(error){status.textContent='Mitglieder konnten nicht geladen werden. Details: '+error.message;return;}
@@ -643,11 +643,16 @@ async function renderMembers(){
   for(const member of filtered){
    const row=document.createElement('div');row.className='member-admin-row';row.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--line,#dce4e7)';
    const identity=document.createElement('div');const name=document.createElement('strong');name.textContent=[member.first_name,member.last_name].filter(Boolean).join(' ')||member.email||member.username||'Mitglied';const detail=document.createElement('small');detail.style.cssText='display:block;opacity:.7;margin-top:3px';detail.textContent=[member.username,member.email,member.role==='admin'?'Administrator':'Mitglied'].filter(Boolean).join(' · ');identity.append(name,detail);
-   const controls=document.createElement('div');controls.style.cssText='display:flex;gap:7px;align-items:center;flex-wrap:wrap';
+   const controls=document.createElement('div');controls.style.cssText='display:flex;gap:10px;align-items:center;flex-wrap:wrap';
+   const roleWrap=document.createElement('div');roleWrap.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap';
    const role=document.createElement('select');role.setAttribute('aria-label','Rolle für '+name.textContent);role.style.cssText='padding:8px;border:1px solid var(--line,#cbd6da);border-radius:7px;font:inherit';role.innerHTML='<option value="member">Mitglied</option><option value="admin">Administrator</option>';role.value=member.role==='admin'?'admin':'member';role.disabled=member.id===user.id;
-   const save=document.createElement('button');save.type='button';save.className='primary';save.textContent='Rolle speichern';save.disabled=member.id===user.id;save.title=member.id===user.id?'Die eigene Rolle kann hier nicht geändert werden.':'Änderung speichern';save.addEventListener('click',()=>saveMemberRole(member.id,role.value,save));
-   const access=document.createElement('button');access.type='button';access.textContent='Zugang verwalten';access.style.cssText='padding:8px 10px';access.title='Mitgliedszugang über die geschützte Supabase-Funktion sperren oder freischalten';access.addEventListener('click',()=>manageMemberAccess(member.id,member.email,access));
-   controls.append(role,save,access);row.append(identity,controls);list.appendChild(row);
+   const save=document.createElement('button');save.type='button';save.className='primary';save.textContent='Rolle speichern';save.disabled=member.id===user.id;save.title=member.id===user.id?'Die eigene Rolle kann hier nicht geändert werden.':'Änderung speichern';save.addEventListener('click',()=>saveMemberRole(member.id,role.value,save));roleWrap.append(role,save);
+   const accessWrap=document.createElement('label');accessWrap.style.cssText='display:flex;align-items:center;gap:9px;padding:7px 11px;border:1px solid var(--line,#cbd6da);border-radius:9px;cursor:pointer;font-weight:700;white-space:nowrap';
+   const access=document.createElement('input');access.type='checkbox';access.checked=!(member.banned_until&&new Date(member.banned_until).getTime()>Date.now());access.disabled=member.id===user.id;access.style.cssText='width:19px;height:19px;accent-color:#23834b;cursor:pointer';access.setAttribute('aria-label','Zugang für '+name.textContent+' freischalten');
+   const accessText=document.createElement('span');accessText.textContent=access.checked?'Freigeschaltet':'Gesperrt';accessText.style.color=access.checked?'#23834b':'#c45b37';
+   accessWrap.append(access,accessText);
+   access.addEventListener('change',async()=>{const previous=!access.checked;const operation=access.checked?'unban':'ban';const label=access.checked?'wieder freischalten':'sperren';if(!confirm('Möchtest du den Zugang von '+name.textContent+' wirklich '+label+'?')){access.checked=previous;return;}access.disabled=true;accessText.textContent='Wird gespeichert …';const {data,error}=await supabaseClient.functions.invoke('admin-manage-member-access',{body:{target_user_id:member.id,action:operation}});if(error||data?.error){alert('Änderung fehlgeschlagen: '+(data?.error||error?.message||''));access.checked=previous;accessText.textContent=previous?'Freigeschaltet':'Gesperrt';access.disabled=member.id===user.id;return;}accessText.textContent=access.checked?'Freigeschaltet':'Gesperrt';accessText.style.color=access.checked?'#23834b':'#c45b37';access.disabled=member.id===user.id;member.banned_until=access.checked?null:new Date(Date.now()+1000*60*60*24*365000).toISOString();});
+   controls.append(roleWrap,accessWrap);row.append(identity,controls);list.appendChild(row);
   }
  }
  search.addEventListener('input',drawMembers);
@@ -661,19 +666,7 @@ async function saveMemberRole(memberId,newRole,button){
  if(error){alert('Rolle konnte nicht geändert werden: '+error.message);button.disabled=false;button.textContent='Rolle speichern';return;}
  await renderMembers();
 }
-async function manageMemberAccess(memberId,email,button){
- const choice=prompt('Zugang für '+(email||'dieses Mitglied')+' verwalten:\n\n1 = Mitglied sperren\n2 = Mitglied freischalten\n\nBitte 1 oder 2 eingeben:');
- if(choice===null)return;
- const normalized=choice.trim();
- if(!['1','2'].includes(normalized)){alert('Bitte 1 für Sperren oder 2 für Freischalten eingeben.');return;}
- const operation=normalized==='1'?'ban':'unban';
- if(!confirm('Möchtest du den Zugang dieses Mitglieds wirklich '+(operation==='ban'?'sperren':'wieder freischalten')+'?'))return;
- button.disabled=true;button.textContent='Bitte warten …';
- const {data,error}=await supabaseClient.functions.invoke('admin-manage-member-access',{body:{target_user_id:memberId,action:operation}});
- if(error||data?.error){alert('Die Änderung konnte nicht ausgeführt werden. '+(data?.error||error?.message||''));button.disabled=false;button.textContent='Zugang verwalten';return;}
- alert(operation==='ban'?'Der Mitgliedszugang wurde gesperrt.':'Der Mitgliedszugang wurde wieder freigeschaltet.');
- button.disabled=false;button.textContent='Zugang verwalten';
-}
+
 async function renderAdmin(){
  const m=document.getElementById('main');
  const {data:{user}}=await supabaseClient.auth.getUser();
