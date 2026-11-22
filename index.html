@@ -630,16 +630,20 @@ async function renderMembers(){
  if(!user){m.innerHTML='<section class="formbox"><h2>Kein Zugriff</h2><p>Bitte melde dich mit einem Administratorkonto an.</p></section>';return;}
  const {data:ownProfile,error:ownError}=await supabaseClient.from('profiles').select('role').eq('id',user.id).single();
  if(ownError||ownProfile?.role!=='admin'){m.innerHTML='<section class="formbox"><h2>Kein Zugriff</h2><p>Dieser Bereich ist nur für Administratoren.</p></section>';return;}
- m.innerHTML='<section class="formbox"><button type="button" onclick="show(\'administration\')">← Zur Verwaltungszentrale</button><div class="kicker">ADMINISTRATION</div><h2>Mitgliederverwaltung</h2><p>Mitglieder, Rollen und Zugang verwalten. Neue Mitglieder sind standardmäßig freigeschaltet.</p><div id="members-status" class="notice">Mitglieder werden geladen …</div><input id="member-search" type="search" placeholder="Mitglied nach Name, Benutzername oder E-Mail suchen …" aria-label="Mitglieder suchen" style="width:100%;padding:12px;border:1px solid var(--line,#cbd6da);border-radius:8px;font:inherit;margin:12px 0"><div id="members-list"></div></section>';
- const status=document.getElementById('members-status'),list=document.getElementById('members-list'),search=document.getElementById('member-search');
+ m.innerHTML='<section class="formbox"><button type="button" onclick="show(\'administration\')">← Zur Verwaltungszentrale</button><div class="kicker">ADMINISTRATION</div><h2>Mitgliederverwaltung</h2><p>Mitglieder, Rollen und Zugang verwalten. Neue Mitglieder sind standardmäßig freigeschaltet.</p><div id="members-status" class="notice">Mitglieder werden geladen …</div><input id="member-search" type="search" placeholder="Mitglied nach Name, Benutzername oder E-Mail suchen …" aria-label="Mitglieder suchen" style="width:100%;padding:12px;border:1px solid var(--line,#cbd6da);border-radius:8px;font:inherit;margin:12px 0"><select id="member-status-filter" aria-label="Nach Zugangsstatus filtern" style="width:100%;padding:10px;border:1px solid var(--line,#cbd6da);border-radius:8px;font:inherit;margin:0 0 12px"><option value="all">Alle Mitglieder</option><option value="active">Nur freigeschaltete</option><option value="banned">Nur gesperrte</option></select><div id="members-list"></div></section>';
+ const status=document.getElementById('members-status'),list=document.getElementById('members-list'),search=document.getElementById('member-search'),filter=document.getElementById('member-status-filter');
  const {data:members,error}=await supabaseClient.rpc('admin_list_member_profiles');
  if(error){status.textContent='Mitglieder konnten nicht geladen werden. Details: '+error.message;return;}
  status.textContent=(members||[]).length+' Mitglieder gefunden.';
  function drawMembers(){
-  const term=search.value.trim().toLocaleLowerCase('de');
-  const filtered=(members||[]).filter(member=>[member.first_name,member.last_name,member.username,member.email].some(value=>String(value||'').toLocaleLowerCase('de').includes(term)));
+  const term=search.value.trim().toLocaleLowerCase('de'),mode=filter.value;
+  const filtered=(members||[]).filter(member=>{
+   const matchesText=[member.first_name,member.last_name,member.username,member.email].some(value=>String(value||'').toLocaleLowerCase('de').includes(term));
+   const banned=!!(member.banned_until&&new Date(member.banned_until).getTime()>Date.now());
+   return matchesText&&(mode==='all'||(mode==='banned'?banned:!banned));
+  });
   list.innerHTML='';
-  if(!filtered.length){list.textContent=term?'Keine passenden Mitglieder gefunden.':'Noch keine Mitglieder vorhanden.';return;}
+  if(!filtered.length){list.textContent='Keine passenden Mitglieder gefunden.';return;}
   for(const member of filtered){
    const row=document.createElement('div');row.className='member-admin-row';row.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--line,#dce4e7)';
    const identity=document.createElement('div');const name=document.createElement('strong');name.textContent=[member.first_name,member.last_name].filter(Boolean).join(' ')||member.email||member.username||'Mitglied';const detail=document.createElement('small');detail.style.cssText='display:block;opacity:.7;margin-top:3px';detail.textContent=[member.username,member.email,member.role==='admin'?'Administrator':'Mitglied'].filter(Boolean).join(' · ');identity.append(name,detail);
@@ -647,16 +651,16 @@ async function renderMembers(){
    const roleWrap=document.createElement('div');roleWrap.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap';
    const role=document.createElement('select');role.setAttribute('aria-label','Rolle für '+name.textContent);role.style.cssText='padding:8px;border:1px solid var(--line,#cbd6da);border-radius:7px;font:inherit';role.innerHTML='<option value="member">Mitglied</option><option value="admin">Administrator</option>';role.value=member.role==='admin'?'admin':'member';role.disabled=member.id===user.id;
    const save=document.createElement('button');save.type='button';save.className='primary';save.textContent='Rolle speichern';save.disabled=member.id===user.id;save.title=member.id===user.id?'Die eigene Rolle kann hier nicht geändert werden.':'Änderung speichern';save.addEventListener('click',()=>saveMemberRole(member.id,role.value,save));roleWrap.append(role,save);
+   const banned=!!(member.banned_until&&new Date(member.banned_until).getTime()>Date.now());
    const accessWrap=document.createElement('label');accessWrap.style.cssText='display:flex;align-items:center;gap:9px;padding:7px 11px;border:1px solid var(--line,#cbd6da);border-radius:9px;cursor:pointer;font-weight:700;white-space:nowrap';
-   const access=document.createElement('input');access.type='checkbox';access.checked=!(member.banned_until&&new Date(member.banned_until).getTime()>Date.now());access.disabled=member.id===user.id;access.style.cssText='width:19px;height:19px;accent-color:#23834b;cursor:pointer';access.setAttribute('aria-label','Zugang für '+name.textContent+' freischalten');
-   const accessText=document.createElement('span');accessText.textContent=access.checked?'Freigeschaltet':'Gesperrt';accessText.style.color=access.checked?'#23834b':'#c45b37';
-   accessWrap.append(access,accessText);
+   const access=document.createElement('input');access.type='checkbox';access.checked=!banned;access.disabled=member.id===user.id;access.style.cssText='width:19px;height:19px;accent-color:#23834b;cursor:pointer';access.setAttribute('aria-label','Zugang für '+name.textContent+' freischalten');
+   const accessText=document.createElement('span');accessText.textContent=banned?'Gesperrt':'Freigeschaltet';accessText.style.color=banned?'#c45b37':'#23834b';accessWrap.append(access,accessText);
    access.addEventListener('change',async()=>{const previous=!access.checked;const operation=access.checked?'unban':'ban';const label=access.checked?'wieder freischalten':'sperren';if(!confirm('Möchtest du den Zugang von '+name.textContent+' wirklich '+label+'?')){access.checked=previous;return;}access.disabled=true;accessText.textContent='Wird gespeichert …';const {data,error}=await supabaseClient.functions.invoke('admin-manage-member-access',{body:{target_user_id:member.id,action:operation}});if(error||data?.error){alert('Änderung fehlgeschlagen: '+(data?.error||error?.message||''));access.checked=previous;accessText.textContent=previous?'Freigeschaltet':'Gesperrt';access.disabled=member.id===user.id;return;}accessText.textContent=access.checked?'Freigeschaltet':'Gesperrt';accessText.style.color=access.checked?'#23834b':'#c45b37';access.disabled=member.id===user.id;member.banned_until=access.checked?null:new Date(Date.now()+1000*60*60*24*365000).toISOString();});
-   controls.append(roleWrap,accessWrap);row.append(identity,controls);list.appendChild(row);
+   const remove=document.createElement('button');remove.type='button';remove.className='danger';remove.textContent='Mitglied entfernen';remove.disabled=member.id===user.id;remove.title=member.id===user.id?'Das eigene Konto kann hier nicht entfernt werden.':'Konto dauerhaft löschen';remove.addEventListener('click',async()=>{const typed=prompt('ACHTUNG: Das Konto von '+name.textContent+' wird dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.\n\nZum Bestätigen bitte LÖSCHEN eingeben:');if(typed!=='LÖSCHEN')return;if(!confirm('Das Konto einschließlich Anmeldedaten und Profil wirklich dauerhaft löschen?'))return;remove.disabled=true;remove.textContent='Wird gelöscht …';const {data,error}=await supabaseClient.functions.invoke('admin-manage-member-access',{body:{target_user_id:member.id,action:'delete'}});if(error||data?.error){alert('Mitglied konnte nicht gelöscht werden: '+(data?.error||error?.message||''));remove.disabled=false;remove.textContent='Mitglied entfernen';return;}alert('Das Mitgliedskonto wurde gelöscht.');await renderMembers();});
+   controls.append(roleWrap,accessWrap,remove);row.append(identity,controls);list.appendChild(row);
   }
  }
- search.addEventListener('input',drawMembers);
- drawMembers();
+ search.addEventListener('input',drawMembers);filter.addEventListener('change',drawMembers);drawMembers();
 }
 async function saveMemberRole(memberId,newRole,button){
  if(!['member','admin'].includes(newRole))return;
