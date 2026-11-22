@@ -646,7 +646,8 @@ async function renderMembers(){
    const controls=document.createElement('div');controls.style.cssText='display:flex;gap:7px;align-items:center;flex-wrap:wrap';
    const role=document.createElement('select');role.setAttribute('aria-label','Rolle für '+name.textContent);role.style.cssText='padding:8px;border:1px solid var(--line,#cbd6da);border-radius:7px;font:inherit';role.innerHTML='<option value="member">Mitglied</option><option value="admin">Administrator</option>';role.value=member.role==='admin'?'admin':'member';role.disabled=member.id===user.id;
    const save=document.createElement('button');save.type='button';save.className='primary';save.textContent='Rolle speichern';save.disabled=member.id===user.id;save.title=member.id===user.id?'Die eigene Rolle kann hier nicht geändert werden.':'Änderung speichern';save.addEventListener('click',()=>saveMemberRole(member.id,role.value,save));
-   controls.append(role,save);row.append(identity,controls);list.appendChild(row);
+   const access=document.createElement('button');access.type='button';access.textContent='Zugang verwalten';access.style.cssText='padding:8px 10px';access.title='Mitgliedszugang über die geschützte Supabase-Funktion sperren oder freischalten';access.addEventListener('click',()=>manageMemberAccess(member.id,member.email,access));
+   controls.append(role,save,access);row.append(identity,controls);list.appendChild(row);
   }
  }
  search.addEventListener('input',drawMembers);
@@ -659,6 +660,19 @@ async function saveMemberRole(memberId,newRole,button){
  const {error}=await supabaseClient.rpc('admin_set_member_role',{target_user_id:memberId,new_role:newRole});
  if(error){alert('Rolle konnte nicht geändert werden: '+error.message);button.disabled=false;button.textContent='Rolle speichern';return;}
  await renderMembers();
+}
+async function manageMemberAccess(memberId,email,button){
+ const action=prompt('Mitgliedszugang verwalten für '+(email||'dieses Mitglied')+'.\n\nGib SPERREN oder FREISCHALTEN ein:');
+ if(!action)return;
+ const normalized=action.trim().toLocaleUpperCase('de');
+ if(!['SPERREN','FREISCHALTEN'].includes(normalized)){alert('Bitte exakt SPERREN oder FREISCHALTEN eingeben.');return;}
+ const operation=normalized==='SPERREN'?'ban':'unban';
+ if(!confirm('Möchtest du den Zugang dieses Mitglieds wirklich '+(operation==='ban'?'sperren':'wieder freischalten')+'?'))return;
+ button.disabled=true;button.textContent='Bitte warten …';
+ const {data,error}=await supabaseClient.functions.invoke('admin-manage-member-access',{body:{target_user_id:memberId,action:operation}});
+ if(error||data?.error){alert('Die Änderung konnte nicht ausgeführt werden. Bitte prüfe, ob die geschützte Supabase-Funktion eingerichtet ist. '+(data?.error||error?.message||''));button.disabled=false;button.textContent='Zugang verwalten';return;}
+ alert(operation==='ban'?'Der Mitgliedszugang wurde gesperrt.':'Der Mitgliedszugang wurde wieder freigeschaltet.');
+ button.disabled=false;button.textContent='Zugang verwalten';
 }
 async function renderAdmin(){
  const m=document.getElementById('main');
